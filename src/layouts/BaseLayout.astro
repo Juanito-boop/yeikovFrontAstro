@@ -1,0 +1,23 @@
+---
+import "@pheralb/toast/dist/styles.css";
+import "../styles/global.css";
+import { Toaster } from "@pheralb/toast";
+import { ClientRouter } from "astro:transitions";
+const { title = "SGPM - Login" } = Astro.props;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+    <link rel="icon" href="/Logo-Usta.png" />
+    <ClientRouter />
+  </head>
+  <body
+    class="max-h-screen overflow-y-auto hide-scroll bg-fixed bg-[url('https://santotostereo.co/wp-content/uploads/2025/08/2-fachada-color-final-e1756410809179-1140x694.jpg')] bg-no-repeat bg-cover bg-center m-0"
+  >
+    <slot />
+    <Toaster client:load />
+  </body>
+</html>

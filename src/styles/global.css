@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --santoto-primary: #0C3B7B;
+  --santoto-secondary: #C92F24;
+  --santoto-accent: #FFDD00;
+}
+
+/* Ocultar la barra de desplazamiento pero conservar la funcionalidad de scroll */
+.hide-scroll {
+  -ms-overflow-style: none;
+  /* IE y Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.hide-scroll::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari y Opera */
+}
+
+/* Opcional: util clase para ocultar scrollbar horizontal o vertical específico */
+.hide-scroll-y {
+  overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scroll-y::-webkit-scrollbar {
+  display: none;
+}
