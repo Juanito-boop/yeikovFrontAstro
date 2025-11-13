@@ -1,6 +1,7 @@
 import { AlertCircle, CheckCircle, Clock, File, FileText, Image, LogOut, Upload, Video, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { logoutUser } from "../../lib/auth";
+import { obtenerPlanesDocente, subirEvidencia, type PlanMejora, type PlanAccion } from "../../lib/evidencia.service";
 
 interface User {
   id: string
@@ -24,6 +25,13 @@ export default function DashboardEvidencias() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [planes, setPlanes] = useState<PlanMejora[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<PlanMejora | null>(null);
+  const [selectedAccion, setSelectedAccion] = useState<PlanAccion | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const navItems = user ? (NAV_ITEMS[user.role as Role] ?? []) : [];
   useEffect(() => {
@@ -39,6 +47,33 @@ export default function DashboardEvidencias() {
     }
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      cargarPlanes();
+    }
+  }, [user]);
+
+  const cargarPlanes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const planesData = await obtenerPlanesDocente();
+      setPlanes(planesData);
+
+      // Seleccionar automáticamente el primer plan si existe
+      if (planesData.length > 0) {
+        setSelectedPlan(planesData[0]);
+        if (planesData[0].acciones && planesData[0].acciones.length > 0) {
+          setSelectedAccion(planesData[0].acciones[0]);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar planes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const initials = useMemo(() => {
     if (!user) return '';
     const n = (user.nombre || '').trim();
@@ -48,15 +83,133 @@ export default function DashboardEvidencias() {
     const result = `${first}${last}`.toUpperCase();
     return result || '';
   }, [user]);
-  const planData = {
-    id: '1',
-    espacioAcademico: 'Machine Learning',
-    motivo: 'Evaluación Cualitativa (comentarios)',
-    estado: 'aceptado_docente', // Solo puede subir evidencias si aceptó el plan
-    progreso: 45,
-    fechaLimite: '15 de Marzo, 2025'
+
+  const handleSubirEvidencias = async () => {
+    if (!selectedAccion) {
+      setError('Selecciona una acción para subir evidencias');
+      return;
+    }
+
+    if (uploadedFiles.length === 0) {
+      setError('Debes seleccionar al menos un archivo');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError(null);
+      setSuccess(null);
+
+      for (const file of uploadedFiles) {
+        await subirEvidencia(selectedAccion.id, file, `Evidencia para ${selectedPlan?.titulo}`);
+      }
+
+      setSuccess(`${uploadedFiles.length} evidencia(s) subida(s) exitosamente`);
+      setUploadedFiles([]);
+
+      // Recargar planes para actualizar el estado
+      await cargarPlanes();
+    } catch (err: any) {
+      setError(err.message || 'Error al subir evidencias');
+    } finally {
+      setUploading(false);
+    }
   };
-  if (planData.estado !== 'aceptado_docente' && planData.estado !== 'en_progreso') {
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Cargando planes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedPlan || planes.length === 0) {
+    return (
+      <div className="h-screen flex flex-col">
+        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
+              </div>
+            </div>
+
+            {navItems.length > 0 ? (
+              <nav className="hidden md:flex items-center gap-8">
+                {navItems.map((label) => (
+                  <a
+                    key={label}
+                    href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
+                    className={`text-sm font-medium cursor-pointer ${label === 'Evidencias' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                    {label}
+                  </a>
+                ))}
+              </nav>
+            ) : null}
+
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
+                <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
+              </div>
+
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {initials}
+              </div>
+
+              <button
+                onClick={() => {
+                  setUser(null);
+                  logoutUser(true);
+                }}
+                aria-label="Cerrar sesión"
+                title="Cerrar sesión"
+                className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
+              >
+                <LogOut />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">
+            <h1 className="text-3xl font-bold text-(--santoto-primary) mb-2 drop-shadow-md">Cargar Evidencias</h1>
+            <p className="text-slate-800 font-medium drop-shadow">Sube los archivos relacionados con tu plan de mejoramiento</p>
+          </div>
+
+          <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border-2 border-white/40 p-8 text-center">
+            <div className="w-16 h-16 bg-(--santoto-accent)/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-(--santoto-accent)" />
+            </div>
+            <h3 className="text-lg font-medium text-(--santoto-primary) mb-2">
+              No tienes planes asignados
+            </h3>
+            <p className="text-slate-800 font-medium">
+              Actualmente no tienes planes de mejoramiento asignados. Contacta con tu director.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const planData = {
+    id: selectedPlan.id,
+    espacioAcademico: selectedPlan.titulo,
+    motivo: selectedPlan.descripcion,
+    estado: selectedPlan.estado.toLowerCase().replace(/\s+/g, '_'),
+    progreso: selectedPlan.progreso || 0,
+    fechaLimite: selectedPlan.fechaLimite || 'Sin fecha límite'
+  };
+
+  if (planData.estado !== 'aceptado_docente' && planData.estado !== 'en_progreso' && planData.estado !== 'aprobado' && planData.estado !== 'enejecucion') {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">
@@ -132,7 +285,7 @@ export default function DashboardEvidencias() {
   };
 
   return (
-    <div className="h-screen flex flex-col items-center ">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -149,7 +302,7 @@ export default function DashboardEvidencias() {
                 <a
                   key={label}
                   href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                  className={`text-sm font-medium cursor-pointer ${label === 'Evidencias' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {label}
                 </a>
               ))}
@@ -180,12 +333,78 @@ export default function DashboardEvidencias() {
           </div>
         </div>
       </header>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Header */}
         <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">
           <h1 className="text-3xl font-bold text-(--santoto-primary) mb-2 drop-shadow-md">Cargar Evidencias</h1>
           <p className="text-slate-800 font-medium drop-shadow">Sube los archivos relacionados con tu plan de mejoramiento</p>
         </div>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mb-6 backdrop-blur-md bg-red-100/80 border-2 border-red-400 text-red-700 px-4 py-3 rounded-xl">
+            <p className="font-medium">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 backdrop-blur-md bg-green-100/80 border-2 border-green-400 text-green-700 px-4 py-3 rounded-xl">
+            <p className="font-medium">{success}</p>
+          </div>
+        )}
+
+        {/* Plan Selection */}
+        {planes.length > 1 && (
+          <div className="mb-6 backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border-2 border-white/40 p-4">
+            <label className="block text-sm font-medium text-(--santoto-primary) mb-2">
+              Seleccionar Plan de Mejora
+            </label>
+            <select
+              value={selectedPlan?.id || ''}
+              onChange={(e) => {
+                const plan = planes.find(p => p.id === e.target.value);
+                setSelectedPlan(plan || null);
+                if (plan?.acciones && plan.acciones.length > 0) {
+                  setSelectedAccion(plan.acciones[0]);
+                } else {
+                  setSelectedAccion(null);
+                }
+                setUploadedFiles([]);
+              }}
+              className="w-full px-4 py-2 border border-white/40 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-(--santoto-primary)"
+            >
+              {planes.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.titulo}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Action Selection */}
+        {selectedPlan && selectedPlan.acciones && selectedPlan.acciones.length > 0 && (
+          <div className="mb-6 backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border-2 border-white/40 p-4">
+            <label className="block text-sm font-medium text-(--santoto-primary) mb-2">
+              Seleccionar Acción del Plan
+            </label>
+            <select
+              value={selectedAccion?.id || ''}
+              onChange={(e) => {
+                const accion = selectedPlan.acciones?.find(a => a.id === e.target.value);
+                setSelectedAccion(accion || null);
+                setUploadedFiles([]);
+              }}
+              className="w-full px-4 py-2 border border-white/40 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-(--santoto-primary)"
+            >
+              {selectedPlan.acciones.map((accion) => (
+                <option key={accion.id} value={accion.id}>
+                  {accion.descripcion}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Plan Info */}
         <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border-2 border-white/40 p-6 mb-8">
@@ -291,9 +510,22 @@ export default function DashboardEvidencias() {
             {/* Upload Button */}
             {uploadedFiles.length > 0 && (
               <div className="mt-6 flex justify-end">
-                <button className="flex items-center space-x-2 px-6 py-3 bg-(--santoto-primary) text-white font-medium rounded-xl hover:bg-(--santoto-primary)/90 transition-all duration-200 shadow-lg hover:shadow-xl">
-                  <CheckCircle className="w-5 h-5" />
-                  <span>Subir Evidencias</span>
+                <button
+                  onClick={handleSubirEvidencias}
+                  disabled={uploading || !selectedAccion}
+                  className="flex items-center space-x-2 px-6 py-3 bg-(--santoto-primary) text-white font-medium rounded-xl hover:bg-(--santoto-primary)/90 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Subiendo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Subir Evidencias</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -305,15 +537,15 @@ export default function DashboardEvidencias() {
           <h4 className="text-sm font-semibold text-(--santoto-primary) mb-3 drop-shadow">Instrucciones para subir evidencias:</h4>
           <ul className="text-sm text-slate-800 font-medium space-y-2">
             <li className="flex items-start space-x-2">
-              <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 flex-shrink-0"></span>
+              <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 shrink-0"></span>
               <span>Los archivos deben estar relacionados directamente con el plan de mejoramiento</span>
             </li>
             <li className="flex items-start space-x-2">
-              <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 flex-shrink-0"></span>
+              <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 shrink-0"></span>
               <span>Tamaño máximo por archivo: 50MB</span>
             </li>
             <li className="flex items-start space-x-2">
-              <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 flex-shrink-0"></span>
+              <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 shrink-0"></span>
               <span>Formatos aceptados: PDF, DOC, DOCX, JPG, PNG, MP4, entre otros</span>
             </li>
           </ul>

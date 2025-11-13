@@ -67,16 +67,11 @@ export default function SeguimientoDashboard() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
+
+    setIsLoading(true);
     fetchAllPlans(token)
       .then(data => {
-        // Normalizar la respuesta: si la API devuelve un objeto { data: [...] } lo extraemos,
-        // si devuelve directamente el array lo usamos, en cualquier otro caso asignamos []
-        const safe = Array.isArray(data)
-          ? data
-          : (data && typeof data === 'object' && Array.isArray((data as any).data))
-            ? (data as any).data
-            : [];
-        setPlanes(safe);
+        setPlanes(data);
         setIsLoading(false);
       })
       .catch(err => {

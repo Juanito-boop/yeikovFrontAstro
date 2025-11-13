@@ -193,7 +193,7 @@ export function GestionFacultades() {
                 <a
                   key={label}
                   href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                  className={`text-sm font-medium cursor-pointer ${label === 'Facultades' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {label}
                 </a>
               ))}
@@ -248,7 +248,7 @@ export function GestionFacultades() {
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {facultades.map((facultad) => (
                 <div key={facultad.id} className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border-2 border-white/40 overflow-hidden">
-                  <div className="bg-gradient-to-r from-(--santoto-primary)/10 to-(--santoto-primary)/6 p-6 border-b border-slate-200">
+                  <div className="bg-linear-to-r from-(--santoto-primary)/10 to-(--santoto-primary)/6 p-6 border-b border-slate-200">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-(--santoto-primary) rounded-xl flex items-center justify-center">

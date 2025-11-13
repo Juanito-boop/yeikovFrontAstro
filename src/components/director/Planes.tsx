@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { FileText, LogOut, Plus, Save, X } from 'lucide-react';
+import { FileText, LogOut, Plus, Save, X, ListTodo } from 'lucide-react';
 import { logoutUser } from "../../lib/auth";
 import { fetchDocentes, createPlan, fetchAllPlans, type Docente, type Plan } from "./request";
 import { toast } from "@pheralb/toast";
@@ -20,6 +20,12 @@ const NAV_ITEMS = {
   Administrador: ['Usuarios', 'Facultades', 'Reportes'],
 };
 
+interface AccionTemp {
+  id: string;
+  descripcion: string;
+  fechaObjetivo: string;
+}
+
 export default function Planes() {
   const [user, setUser] = useState<User | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -31,6 +37,11 @@ export default function Planes() {
     titulo: '',
     descripcion: '',
     incidenciaId: ''
+  });
+  const [acciones, setAcciones] = useState<AccionTemp[]>([]);
+  const [nuevaAccion, setNuevaAccion] = useState({
+    descripcion: '',
+    fechaObjetivo: ''
   });
 
   const navItems = user ? NAV_ITEMS[user.role] || [] : [];
@@ -48,17 +59,15 @@ export default function Planes() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetchDocentes(token)
-      .then(setDocentes)
-      .catch(err => toast.error({ text: 'Error al cargar docentes: ' + err.message }));
-
-    fetchAllPlans(token)
-      .then(data => {
-        // Normalize different API shapes: either an array or an object with a data array
-        const plansArray = Array.isArray(data) ? data : (data && Array.isArray((data as any).data) ? (data as any).data : []);
-        setPlanes(plansArray);
+    Promise.all([
+      fetchDocentes(token),
+      fetchAllPlans(token)
+    ])
+      .then(([docentesData, planesData]) => {
+        setDocentes(docentesData);
+        setPlanes(planesData);
       })
-      .catch(err => toast.error({ text: 'Error al cargar planes: ' + err.message }));
+      .catch(err => toast.error({ text: 'Error al cargar datos: ' + err.message }));
   }, []);
 
   const initials = useMemo(() => {
@@ -76,12 +85,34 @@ export default function Planes() {
 
     setIsLoading(true);
     try {
-      await createPlan(token, {
+      const planCreado = await createPlan(token, {
         titulo: formData.titulo,
         descripcion: formData.descripcion,
         docenteId: formData.docenteId,
         incidenciaId: formData.incidenciaId || undefined
       });
+
+      // Si hay acciones, crearlas después de crear el plan
+      if (acciones.length > 0 && planCreado.id) {
+        for (const accion of acciones) {
+          try {
+            await fetch('http://localhost:3000/api/acciones', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                planId: planCreado.id,
+                descripcion: accion.descripcion,
+                fechaObjetivo: accion.fechaObjetivo || undefined
+              })
+            });
+          } catch (err) {
+            console.error('Error al crear acción:', err);
+          }
+        }
+      }
 
       toast.success({ text: 'Plan creado exitosamente' });
       const updated = await fetchAllPlans(token);
@@ -96,7 +127,24 @@ export default function Planes() {
 
   const resetForm = () => {
     setFormData({ docenteId: '', titulo: '', descripcion: '', incidenciaId: '' });
+    setAcciones([]);
+    setNuevaAccion({ descripcion: '', fechaObjetivo: '' });
     setMostrarModal(false);
+  };
+
+  const agregarAccion = () => {
+    if (nuevaAccion.descripcion.trim()) {
+      setAcciones([...acciones, {
+        id: Date.now().toString(),
+        descripcion: nuevaAccion.descripcion,
+        fechaObjetivo: nuevaAccion.fechaObjetivo
+      }]);
+      setNuevaAccion({ descripcion: '', fechaObjetivo: '' });
+    }
+  };
+
+  const eliminarAccion = (id: string) => {
+    setAcciones(acciones.filter(a => a.id !== id));
   };
 
   const getEstadoColor = (estado: string) => {
@@ -121,7 +169,7 @@ export default function Planes() {
 
   return (
     <div className="h-screen flex flex-col">
-       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
+      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
@@ -188,35 +236,35 @@ export default function Planes() {
           </div>
         </div>
 
-          <div className="p-6">
-            {!Array.isArray(planes) || planes.length === 0 ? (
-              <div className="text-center py-8 bg-white rounded-2xl shadow-md border border-slate-200">
-                <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500">No hay planes asignados aún</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {planes.map(plan => (
-                  <div key={plan.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
-                        <FileText className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-900">{plan.titulo}</h3>
-                        <p className="text-sm text-slate-600">{plan.docente.nombre} {plan.docente.apellido}</p>
-                        <p className="text-xs text-slate-500">{plan.descripcion.substring(0, 60)}...</p>
-                      </div>
+        <div className="p-6">
+          {!Array.isArray(planes) || planes.length === 0 ? (
+            <div className="text-center py-8 bg-white rounded-2xl shadow-md border border-slate-200">
+              <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500">No hay planes asignados aún</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {planes.map(plan => (
+                <div key={plan.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-white" />
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(plan.estado)}`}>{plan.estado}</span>
-                      <span className="text-xs text-slate-500">{formatDate(plan.fechaCreacion)}</span>
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">{plan.titulo}</h3>
+                      <p className="text-sm text-slate-600">{plan.docente.nombre} {plan.docente.apellido}</p>
+                      <p className="text-xs text-slate-500">{plan.descripcion.substring(0, 60)}...</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(plan.estado)}`}>{plan.estado}</span>
+                    <span className="text-xs text-slate-500">{formatDate(plan.fechaCreacion)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {mostrarModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => e.target === e.currentTarget && resetForm()}>
@@ -282,6 +330,69 @@ export default function Planes() {
                     placeholder="ID de incidencia"
                     disabled={isLoading}
                   />
+                </div>
+
+                {/* Sección de Acciones */}
+                <div className="border-t border-slate-200 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Acciones del Plan</h3>
+                    <ListTodo className="w-5 h-5 text-indigo-600" />
+                  </div>
+
+                  {/* Lista de acciones agregadas */}
+                  {acciones.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {acciones.map(accion => (
+                        <div key={accion.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900">{accion.descripcion}</p>
+                            {accion.fechaObjetivo && (
+                              <p className="text-xs text-slate-500">
+                                Fecha objetivo: {new Date(accion.fechaObjetivo).toLocaleDateString('es-ES')}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => eliminarAccion(accion.id)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Formulario para agregar nueva acción */}
+                  <div className="space-y-3 p-4 bg-slate-50 rounded-xl">
+                    <input
+                      type="text"
+                      value={nuevaAccion.descripcion}
+                      onChange={(e) => setNuevaAccion({ ...nuevaAccion, descripcion: e.target.value })}
+                      placeholder="Descripción de la acción..."
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                      disabled={isLoading}
+                    />
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="date"
+                        value={nuevaAccion.fechaObjetivo}
+                        onChange={(e) => setNuevaAccion({ ...nuevaAccion, fechaObjetivo: e.target.value })}
+                        className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={agregarAccion}
+                        disabled={!nuevaAccion.descripcion.trim() || isLoading}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Agregar</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex space-x-4 pt-4">

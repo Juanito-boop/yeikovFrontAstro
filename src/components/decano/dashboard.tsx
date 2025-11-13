@@ -176,7 +176,7 @@ export function DecanoDashboard() {
               return (
                 <div key={index} className="backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[stat.color as keyof typeof colorClasses]} flex items-center justify-center shadow-lg`}>
+                    <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${colorClasses[stat.color as keyof typeof colorClasses]} flex items-center justify-center shadow-lg`}>
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
@@ -217,9 +217,9 @@ export function DecanoDashboard() {
                       </div>
                       <div className="w-full bg-slate-200 rounded-full h-3">
                         <div
-                          className={`h-3 rounded-full transition-all duration-500 ${dept.cumplimiento >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                            dept.cumplimiento >= 80 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                              'bg-gradient-to-r from-red-500 to-red-600'
+                          className={`h-3 rounded-full transition-all duration-500 ${dept.cumplimiento >= 90 ? 'bg-linear-to-r from-green-500 to-emerald-500' :
+                            dept.cumplimiento >= 80 ? 'bg-linear-to-r from-yellow-500 to-orange-500' :
+                              'bg-linear-to-r from-red-500 to-red-600'
                             }`}
                           style={{ width: `${dept.cumplimiento}%` }}
                         ></div>
@@ -233,7 +233,7 @@ export function DecanoDashboard() {
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button className="group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 text-left">
-                <div className="w-12 h-12 bg-gradient-to-br from-(--santoto-primary) to-[var(--santoto-secondary)] rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
+                <div className="w-12 h-12 bg-linear-to-br from-(--santoto-primary) to-(--santoto-secondary) rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
                   <FileText className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="font-semibold text-slate-900 mb-1">Asignar Planes</h3>
@@ -241,7 +241,7 @@ export function DecanoDashboard() {
               </button>
 
               <button className="group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 text-left">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
+                <div className="w-12 h-12 bg-linear-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="font-semibold text-slate-900 mb-1">Revisar Evidencias</h3>
@@ -249,7 +249,7 @@ export function DecanoDashboard() {
               </button>
 
               <button className="group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 text-left">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
+                <div className="w-12 h-12 bg-linear-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
                   <BarChart3 className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="font-semibold text-slate-900 mb-1">Generar Reportes</h3>
@@ -269,7 +269,7 @@ export function DecanoDashboard() {
                 <div className="space-y-4">
                   {criticalAlerts.map((alert, index) => (
                     <div key={index} className="flex items-start space-x-3 p-3 rounded-xl bg-white/40">
-                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${alert.priority === 'high' ? 'bg-red-500' :
+                      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${alert.priority === 'high' ? 'bg-red-500' :
                         alert.priority === 'medium' ? 'bg-yellow-500' :
                           'bg-blue-500'
                         }`}></div>
@@ -284,7 +284,7 @@ export function DecanoDashboard() {
             </div>
 
             {/* Faculty Summary */}
-            <div className="backdrop-blur-md bg-gradient-to-br from-(--santoto-primary)/30 to-blue-500/30 rounded-2xl p-6 border-2 border-white/40 shadow-lg">
+            <div className="backdrop-blur-md bg-linear-to-br from-(--santoto-primary)/30 to-blue-500/30 rounded-2xl p-6 border-2 border-white/40 shadow-lg">
               <h3 className="text-lg font-semibold text-(--santoto-primary) mb-4 drop-shadow">Resumen de Facultad</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">

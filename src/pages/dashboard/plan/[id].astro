@@ -1,0 +1,11 @@
+---
+import PlanesDetalle from "../../../components/docente/planes-detalle";
+export const prerender = false;
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect("/dashboard");
+}
+---
+
+<PlanesDetalle id={id} client:load />

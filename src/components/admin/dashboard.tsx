@@ -127,7 +127,7 @@ export function AdminDashboard() {
               return (
                 <div key={index} className="backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[stat.color as keyof typeof colorClasses]} flex items-center justify-center shadow-lg`}>
+                    <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${colorClasses[stat.color as keyof typeof colorClasses]} flex items-center justify-center shadow-lg`}>
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.change.startsWith('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -152,7 +152,7 @@ export function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 cursor-pointer">
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-14 h-14 bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
                     <Users className="w-7 h-7 text-white" />
                   </div>
                   <div>
@@ -166,7 +166,7 @@ export function AdminDashboard() {
 
               <div className="group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 cursor-pointer">
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-14 h-14 bg-linear-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
                     <Settings className="w-7 h-7 text-white" />
                   </div>
                   <div>
@@ -227,7 +227,7 @@ export function AdminDashboard() {
                       </div>
                       <div className="w-full bg-slate-200 rounded-full h-2">
                         <div
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
+                          className="bg-linear-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${(dept.completed / dept.plans) * 100}%` }}
                         ></div>
                       </div>
@@ -242,7 +242,7 @@ export function AdminDashboard() {
             </div>
 
             {/* System Alerts */}
-            <div className="backdrop-blur-md bg-gradient-to-br from-orange-500/30 to-red-500/30 rounded-2xl p-6 border-2 border-white/40 shadow-lg">
+            <div className="backdrop-blur-md bg-linear-to-br from-orange-500/30 to-red-500/30 rounded-2xl p-6 border-2 border-white/40 shadow-lg">
               <div className="flex items-center space-x-3 mb-4">
                 <AlertTriangle className="w-6 h-6 text-orange-700" />
                 <h3 className="text-lg font-semibold text-orange-900 drop-shadow">Alertas del Sistema</h3>

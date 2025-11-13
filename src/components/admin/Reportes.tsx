@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Download, TrendingUp, Users, FileText, Eye, Filter, LogOut } from 'lucide-react';
+import { BarChart3, Download, TrendingUp, Users, FileText, Eye, Filter, LogOut, X } from 'lucide-react';
 import { logoutUser } from '../../lib/auth';
-import { fetchAdminStats, generarReporte, fetchReportes, type ReporteData as ReporteDataType } from './request';
+import { fetchAdminStats, generarReporte, fetchReportes, fetchFacultades, type ReporteData as ReporteDataType } from './request';
 import { toast } from '@pheralb/toast';
 
 interface ReporteData {
@@ -47,6 +47,9 @@ export function Reportes() {
     { label: 'Reportes Generados', value: '0', icon: BarChart3, color: 'purple' },
     { label: 'Tasa de Cumplimiento', value: '0%', icon: TrendingUp, color: 'emerald' },
   ]);
+  const [reporteViendose, setReporteViendose] = useState<ReporteData | null>(null);
+  const [facultades, setFacultades] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [facultadSeleccionada, setFacultadSeleccionada] = useState<string>('todas');
 
   // Fetch data on mount
   useEffect(() => {
@@ -83,6 +86,15 @@ export function Reportes() {
       .catch(err => {
         toast.error({ text: 'Error al cargar reportes: ' + err.message });
         setIsLoading(false);
+      });
+
+    // Fetch facultades para filtro
+    fetchFacultades(token)
+      .then((data: any) => {
+        setFacultades(data);
+      })
+      .catch((err: any) => {
+        console.error('Error al cargar facultades:', err);
       });
   }, []);
 
@@ -123,9 +135,53 @@ export function Reportes() {
     }
   };
 
-  const descargarReporte = (reporteId: string) => {
-    console.log(`Descargando reporte: ${reporteId}`);
-    // Aquí iría la lógica de descarga
+  const descargarReportePDF = (reporte: ReporteData) => {
+    try {
+      // Crear contenido del PDF
+      let contenido = `REPORTE: ${reporte.titulo.toUpperCase()}\n\n`;
+      contenido += `Tipo: ${reporte.tipo}\n`;
+      contenido += `Fecha de Generación: ${new Date(reporte.fechaGeneracion).toLocaleDateString('es-ES')}\n`;
+      contenido += `Total de Registros: ${reporte.registros}\n`;
+      contenido += `\n${'='.repeat(60)}\n\n`;
+
+      // Agregar datos según el tipo
+      if (reporte.datos) {
+        if (Array.isArray(reporte.datos)) {
+          reporte.datos.forEach((item: any, index: number) => {
+            contenido += `${index + 1}. `;
+            if (item.nombre) contenido += `${item.nombre} `;
+            if (item.apellido) contenido += `${item.apellido}`;
+            if (item.email) contenido += ` - ${item.email}`;
+            if (item.titulo) contenido += `${item.titulo}`;
+            if (item.estado) contenido += ` [${item.estado}]`;
+            contenido += '\n';
+          });
+        } else if (typeof reporte.datos === 'object') {
+          Object.entries(reporte.datos).forEach(([key, value]) => {
+            contenido += `${key}: ${value}\n`;
+          });
+        }
+      }
+
+      // Crear blob y descargar
+      const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${reporte.tipo}_${reporte.fechaGeneracion}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success({ text: 'Reporte descargado exitosamente' });
+    } catch (error: any) {
+      toast.error({ text: 'Error al descargar reporte: ' + error.message });
+    }
+  };
+
+  const verReporte = (reporte: ReporteData) => {
+    setReporteViendose(reporte);
   };
 
   const getEstadoColor = (estado: string) => {
@@ -195,7 +251,7 @@ export function Reportes() {
                 <a
                   key={label}
                   href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                  className={`text-sm font-medium cursor-pointer ${label === 'Reportes Administrador' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {label}
                 </a>
               ))}
@@ -276,7 +332,22 @@ export function Reportes() {
             <h2 className="text-lg font-semibold text-slate-900">Generar Nuevo Reporte</h2>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Facultad
+                </label>
+                <select
+                  value={facultadSeleccionada}
+                  onChange={(e) => setFacultadSeleccionada(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="todas">Todas las facultades</option>
+                  {facultades.map(fac => (
+                    <option key={fac.id} value={fac.id}>{fac.nombre}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Fecha Inicio
@@ -387,11 +458,14 @@ export function Reportes() {
                       {reporte.estado}
                     </span>
                     <div className="flex space-x-2">
-                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                      <button
+                        onClick={() => verReporte(reporte)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => descargarReporte(reporte.id)}
+                        onClick={() => descargarReportePDF(reporte)}
                         disabled={reporte.estado !== 'generado'}
                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -404,6 +478,129 @@ export function Reportes() {
             </div>
           </div>
         </div>
+
+        {/* Modal de Visualización de Reporte */}
+        {reporteViendose && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              {/* Header del Modal */}
+              <div className="bg-linear-to-r from-blue-600 to-indigo-600 p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">{reporteViendose.titulo}</h2>
+                  <p className="text-blue-100 text-sm">
+                    Generado: {new Date(reporteViendose.fechaGeneracion).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setReporteViendose(null)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6 text-white" />
+                </button>
+              </div>
+
+              {/* Contenido del Modal */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+                {/* Información del Reporte */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <p className="text-sm text-blue-600 mb-1">Tipo</p>
+                    <p className="text-lg font-semibold text-blue-900 capitalize">{reporteViendose.tipo}</p>
+                  </div>
+                  <div className="bg-green-50 rounded-xl p-4">
+                    <p className="text-sm text-green-600 mb-1">Total Registros</p>
+                    <p className="text-lg font-semibold text-green-900">{reporteViendose.registros}</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-xl p-4">
+                    <p className="text-sm text-purple-600 mb-1">Estado</p>
+                    <p className="text-lg font-semibold text-purple-900 capitalize">{reporteViendose.estado}</p>
+                  </div>
+                </div>
+
+                {/* Descripción */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">Descripción</h3>
+                  <p className="text-slate-600">{reporteViendose.descripcion}</p>
+                </div>
+
+                {/* Datos del Reporte */}
+                <div className="bg-slate-50 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Datos del Reporte</h3>
+                  {reporteViendose.datos ? (
+                    Array.isArray(reporteViendose.datos) ? (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {reporteViendose.datos.slice(0, 50).map((item: any, index: number) => (
+                          <div key={index} className="bg-white rounded-lg p-4 border border-slate-200">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-slate-900">
+                                  {item.nombre && item.apellido ? `${item.nombre} ${item.apellido}` :
+                                    item.titulo || item.nombre || `Registro ${index + 1}`}
+                                </p>
+                                {item.email && (
+                                  <p className="text-sm text-slate-600 mt-1">{item.email}</p>
+                                )}
+                                {item.descripcion && (
+                                  <p className="text-sm text-slate-600 mt-1">{item.descripcion}</p>
+                                )}
+                              </div>
+                              {item.estado && (
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.estado === 'completado' ? 'bg-green-100 text-green-700' :
+                                  item.estado === 'en_progreso' ? 'bg-blue-100 text-blue-700' :
+                                    item.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-700' :
+                                      'bg-slate-100 text-slate-700'
+                                  }`}>
+                                  {item.estado}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {reporteViendose.datos.length > 50 && (
+                          <p className="text-center text-sm text-slate-500 py-2">
+                            Mostrando 50 de {reporteViendose.datos.length} registros
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {Object.entries(reporteViendose.datos).map(([key, value]: [string, any]) => (
+                          <div key={key} className="flex justify-between items-center py-2 border-b border-slate-200">
+                            <span className="font-medium text-slate-700">{key}:</span>
+                            <span className="text-slate-900">{String(value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ) : (
+                    <p className="text-slate-500 text-center py-8">No hay datos disponibles</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer del Modal */}
+              <div className="border-t border-slate-200 p-4 flex justify-end gap-3 bg-slate-50">
+                <button
+                  onClick={() => setReporteViendose(null)}
+                  className="px-4 py-2 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={() => descargarReportePDF(reporteViendose)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar Reporte
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

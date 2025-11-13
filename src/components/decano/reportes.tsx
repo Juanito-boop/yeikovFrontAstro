@@ -173,7 +173,7 @@ export function ReportesDecano() {
             return (
               <div key={index} className="backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40">
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[metric.color as keyof typeof colorClasses]} flex items-center justify-center`}>
+                  <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${colorClasses[metric.color as keyof typeof colorClasses]} flex items-center justify-center`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                 </div>
@@ -209,9 +209,9 @@ export function ReportesDecano() {
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div
-                      className={`h-2 rounded-full transition-all duration-500 ${dept.cumplimiento >= 90 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                        dept.cumplimiento >= 80 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                          'bg-gradient-to-r from-red-500 to-red-600'
+                      className={`h-2 rounded-full transition-all duration-500 ${dept.cumplimiento >= 90 ? 'bg-linear-to-r from-green-500 to-emerald-500' :
+                        dept.cumplimiento >= 80 ? 'bg-linear-to-r from-yellow-500 to-orange-500' :
+                          'bg-linear-to-r from-red-500 to-red-600'
                         }`}
                       style={{ width: `${dept.cumplimiento}%` }}
                     ></div>
@@ -301,7 +301,7 @@ export function ReportesDecano() {
               {reportesFacultad.map((reporte) => (
                 <div key={reporte.id} className="flex items-center justify-between p-4 bg-white/40 border-2 border-white/30 rounded-xl hover:bg-white/50 transition-colors">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-linear-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
                       <BarChart3 className="w-6 h-6 text-white" />
                     </div>
                     <div>

@@ -127,12 +127,39 @@ export async function crearUsuario(token: string, data: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
+    body: JSON.stringify({
+      ...data,
+      sendWelcomeEmail: true // Enviar email con contraseña temporal
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `Error ${response.status}: ${response.statusText}`);
+  }
+}
+
+// Change password
+export async function cambiarContrasena(token: string, data: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(data),
   });
 
   if (!response.ok) {
-    throw new Error(`Error ${response.status}: ${response.statusText}`);
+    const error = await response.json();
+    throw new Error(error.error || `Error ${response.status}: ${response.statusText}`);
   }
+
+  return await response.json();
 }
 
 // Create new facultad

@@ -135,10 +135,11 @@ export async function createPlan(token: string, body: CreatePlan): Promise<Plan>
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || "Failed to create plan");
+    throw new Error(error.error || error.message || "Failed to create plan");
   }
-  const data: Plan = await response.json();
-  return data;
+  const result = await response.json();
+  // El backend devuelve { message: '...', plan: {...} }
+  return result.plan || result;
 }
 
 export async function fetchAllPlans(token: string): Promise<Plan[]> {
@@ -152,8 +153,9 @@ export async function fetchAllPlans(token: string): Promise<Plan[]> {
   if (!response.ok) {
     throw new Error("Failed to fetch plans");
   }
-  const data: Plan[] = await response.json();
-  return data;
+  const result = await response.json();
+  // El backend devuelve { planes: [...] }
+  return result.planes || [];
 }
 
 export async function fetchDocentes(token: string, schoolId?: string): Promise<Docente[]> {

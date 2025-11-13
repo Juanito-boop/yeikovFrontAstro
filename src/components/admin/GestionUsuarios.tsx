@@ -146,28 +146,67 @@ export function GestionUsuarios() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
 
-    if (usuarioEditando) {
-      // Editar usuario existente
-      setUsuarios(usuarios.map(u =>
-        u.id === usuarioEditando.id
-          ? { ...u, ...formData }
-          : u
-      ));
-    } else {
-      // Crear nuevo usuario
-      const nuevoUsuario: Usuario = {
-        id: Date.now().toString(),
-        ...formData,
-        fechaCreacion: new Date().toLocaleDateString('es-ES'),
-        ultimoAcceso: 'Nunca'
-      };
-      setUsuarios([...usuarios, nuevoUsuario]);
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
     }
 
-    resetForm();
+    if (usuarioEditando) {
+      // TODO: Implementar endpoint de edición en el backend
+      toast.info({ text: 'La edición de usuarios aún no está implementada' });
+      return;
+    }
+
+    // Validaciones
+    if (!formData.nombre || !formData.email) {
+      toast.error({ text: 'Nombre y email son obligatorios' });
+      return;
+    }
+
+    if (!formData.facultad) {
+      toast.error({ text: 'Debe seleccionar una facultad' });
+      return;
+    }
+
+    try {
+      // Separar nombre y apellido
+      const nombreParts = formData.nombre.trim().split(' ');
+      const nombre = nombreParts[0];
+      const apellido = nombreParts.slice(1).join(' ') || nombreParts[0];
+
+      await crearUsuario(token, {
+        nombre,
+        apellido,
+        email: formData.email,
+        password: 'temporal123', // Password temporal que el usuario debe cambiar
+        schoolId: formData.facultad,
+        role: formData.rol
+      });
+
+      // Recargar usuarios
+      const usuariosActualizados = await fetchUsuarios(token);
+      const mappedUsuarios = usuariosActualizados.map((u: UsuarioType) => ({
+        id: u.id,
+        nombre: `${u.nombre} ${u.apellido}`,
+        email: u.email,
+        rol: u.role || 'docente',
+        facultad: u.school?.nombre,
+        departamento: '',
+        estado: 'activo' as 'activo' | 'inactivo',
+        fechaCreacion: 'N/A',
+        ultimoAcceso: 'N/A'
+      }));
+      setUsuarios(mappedUsuarios);
+
+      toast.success({ text: 'Usuario creado exitosamente' });
+      resetForm();
+    } catch (error: any) {
+      toast.error({ text: 'Error al crear usuario: ' + error.message });
+    }
   };
 
   const resetForm = () => {
@@ -228,7 +267,7 @@ export function GestionUsuarios() {
                 <a
                   key={label}
                   href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                  className={`text-sm font-medium cursor-pointer ${label === 'Usuarios' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {label}
                 </a>
               ))}
