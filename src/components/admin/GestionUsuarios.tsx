@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Edit3, Trash2, Shield, Crown, Building2, User, Search, LogOut } from 'lucide-react';
 import { logoutUser } from '../../lib/auth';
-import { fetchUsuarios, crearUsuario, fetchFacultades, type Usuario as UsuarioType, type Facultad } from './request';
+import { fetchUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario as eliminarUsuarioAPI, fetchFacultades, type Usuario as UsuarioType, type Facultad } from './request';
 import { toast } from '@pheralb/toast';
 
 interface UserAuth {
@@ -146,28 +146,80 @@ export function GestionUsuarios() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (usuarioEditando) {
-      // Editar usuario existente
-      setUsuarios(usuarios.map(u =>
-        u.id === usuarioEditando.id
-          ? { ...u, ...formData }
-          : u
-      ));
-    } else {
-      // Crear nuevo usuario
-      const nuevoUsuario: Usuario = {
-        id: Date.now().toString(),
-        ...formData,
-        fechaCreacion: new Date().toLocaleDateString('es-ES'),
-        ultimoAcceso: 'Nunca'
-      };
-      setUsuarios([...usuarios, nuevoUsuario]);
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
     }
 
-    resetForm();
+    try {
+      if (usuarioEditando) {
+        // Editar usuario existente
+        const [nombre, ...apellidoParts] = formData.nombre.split(' ');
+        const apellido = apellidoParts.join(' ');
+        
+        const facultadId = facultades.find(f => f.nombre === formData.facultad)?.id || '';
+        
+        await actualizarUsuario(token, usuarioEditando.id, {
+          nombre,
+          apellido: apellido || nombre,
+          email: formData.email,
+          role: formData.rol,
+          schoolId: facultadId
+        });
+        
+        // Actualizar la lista local
+        setUsuarios(usuarios.map(u =>
+          u.id === usuarioEditando.id
+            ? { ...u, ...formData }
+            : u
+        ));
+        
+        toast.success({ text: 'Usuario actualizado exitosamente' });
+      } else {
+        // Crear nuevo usuario
+        const [nombre, ...apellidoParts] = formData.nombre.split(' ');
+        const apellido = apellidoParts.join(' ');
+        
+        const facultadId = facultades.find(f => f.nombre === formData.facultad)?.id || '';
+        
+        // Generate a temporary password
+        const tempPassword = 'Temporal123!';
+        
+        await crearUsuario(token, {
+          nombre,
+          apellido: apellido || nombre,
+          email: formData.email,
+          password: tempPassword,
+          schoolId: facultadId,
+          role: formData.rol
+        });
+        
+        // Recargar la lista de usuarios
+        const usuariosData = await fetchUsuarios(token);
+        const mappedUsuarios = usuariosData.map((u: UsuarioType) => ({
+          id: u.id,
+          nombre: `${u.nombre} ${u.apellido}`,
+          email: u.email,
+          rol: u.role || 'docente',
+          facultad: u.school?.nombre,
+          departamento: '',
+          estado: 'activo' as 'activo' | 'inactivo',
+          fechaCreacion: 'N/A',
+          ultimoAcceso: 'N/A'
+        }));
+        setUsuarios(mappedUsuarios);
+        
+        toast.success({ text: 'Usuario creado exitosamente' });
+      }
+
+      resetForm();
+    } catch (error: any) {
+      toast.error({ text: 'Error: ' + (error.message || 'No se pudo procesar la solicitud') });
+    }
   };
 
   const resetForm = () => {
@@ -196,9 +248,23 @@ export function GestionUsuarios() {
     setMostrarModal(true);
   };
 
-  const eliminarUsuario = (id: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
+  const eliminarUsuario = async (id: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
+      return;
+    }
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
+    }
+
+    try {
+      await eliminarUsuarioAPI(token, id);
       setUsuarios(usuarios.filter(u => u.id !== id));
+      toast.success({ text: 'Usuario eliminado exitosamente' });
+    } catch (error: any) {
+      toast.error({ text: 'Error al eliminar usuario: ' + error.message });
     }
   };
 
@@ -462,12 +528,17 @@ export function GestionUsuarios() {
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Facultad
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={formData.facultad}
                         onChange={(e) => setFormData({ ...formData, facultad: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-(--santoto-primary) focus:border-transparent"
-                      />
+                        required
+                      >
+                        <option value="">Seleccionar facultad</option>
+                        {facultades.map(f => (
+                          <option key={f.id} value={f.nombre}>{f.nombre}</option>
+                        ))}
+                      </select>
                     </div>
 
                     {formData.rol === 'docente' && (

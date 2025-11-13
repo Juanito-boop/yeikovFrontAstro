@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Building2, Plus, Edit3, Trash2, Users, FileText, LogOut } from 'lucide-react';
 import { logoutUser } from '../../lib/auth';
-import { fetchFacultades, crearFacultad, type Facultad as FacultadType } from './request';
+import { fetchFacultades, crearFacultad, actualizarFacultad, eliminarFacultad as eliminarFacultadAPI, type Facultad as FacultadType } from './request';
 import { toast } from '@pheralb/toast';
 
 interface UserAuth {
@@ -104,18 +104,27 @@ export function GestionFacultades() {
     e.preventDefault();
     const departamentosFiltrados = formData.departamentos.filter(d => d.trim() !== '');
 
-    if (facultadEditando) {
-      // Por ahora solo actualiza localmente hasta tener endpoint de edición
-      setFacultades(facultades.map(f => f.id === facultadEditando ? { ...f, ...formData, departamentos: departamentosFiltrados } : f));
-      resetForm();
-    } else {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error({ text: 'No hay sesión activa' });
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
+    }
 
-      try {
+    try {
+      if (facultadEditando) {
+        // Editar facultad existente
+        await actualizarFacultad(token, facultadEditando, { nombre: formData.nombre });
+        
+        // Actualizar la lista local
+        setFacultades(facultades.map(f => 
+          f.id === facultadEditando 
+            ? { ...f, nombre: formData.nombre, departamentos: departamentosFiltrados } 
+            : f
+        ));
+        
+        toast.success({ text: 'Facultad actualizada exitosamente' });
+      } else {
+        // Crear nueva facultad
         const nuevaFacultad = await crearFacultad(token, { nombre: formData.nombre });
         const mapped: Facultad = {
           id: nuevaFacultad.id,
@@ -130,10 +139,10 @@ export function GestionFacultades() {
         };
         setFacultades([...facultades, mapped]);
         toast.success({ text: 'Facultad creada exitosamente' });
-        resetForm();
-      } catch (err: any) {
-        toast.error({ text: 'Error al crear facultad: ' + err.message });
       }
+      resetForm();
+    } catch (err: any) {
+      toast.error({ text: 'Error: ' + (err.message || 'No se pudo procesar la solicitud') });
     }
   };
 
@@ -149,9 +158,23 @@ export function GestionFacultades() {
     setMostrarModal(true);
   };
 
-  const eliminarFacultad = (id: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar esta facultad?')) {
+  const eliminarFacultad = async (id: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta facultad?')) {
+      return;
+    }
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
+    }
+
+    try {
+      await eliminarFacultadAPI(token, id);
       setFacultades(facultades.filter(f => f.id !== id));
+      toast.success({ text: 'Facultad eliminada exitosamente' });
+    } catch (error: any) {
+      toast.error({ text: 'Error al eliminar facultad: ' + error.message });
     }
   };
 
