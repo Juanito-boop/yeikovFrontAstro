@@ -1,11 +1,24 @@
 ---
-import PlanesDetalle from "../../../components/docente/planes-detalle";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import PlanDetalle from "../../../components/docente/planes-detalle";
 export const prerender = false;
-const { id } = Astro.params;
 
-if (!id) {
-  return Astro.redirect("/dashboard");
+const { id } = Astro.params;
+const planData = Astro.url.searchParams.get("data");
+
+if (!id || !planData) {
+  return Astro.redirect("/dashboard/mis-planes");
+}
+
+let plan;
+try {
+  plan = JSON.parse(decodeURIComponent(planData));
+} catch (error) {
+  console.error("Error parsing plan data:", error);
+  return Astro.redirect("/dashboard/mis-planes");
 }
 ---
 
-<PlanesDetalle id={id} client:load />
+<BaseLayout title={`Detalles del Plan - ${plan.titulo}`}>
+  <PlanDetalle plan={plan} client:load />
+</BaseLayout>

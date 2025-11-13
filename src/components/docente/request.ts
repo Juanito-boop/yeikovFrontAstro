@@ -6,6 +6,7 @@ export interface Plan {
   descripcion: string;
   estado: string;
   fechaCreacion: string;
+  fechaAprobacion?: string;
   docente: {
     id: string;
     nombre: string;

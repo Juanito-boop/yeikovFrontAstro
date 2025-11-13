@@ -273,7 +273,7 @@ export default function DashboardPlanes() {
                       </div>
                     </div>
                     <a
-                      href={`/dashboard/plan/${plan.id}`}
+                      href={`/dashboard/plan/${plan.id}?data=${encodeURIComponent(JSON.stringify(plan))}`}
                       className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
                     >
                       Ver detalles
