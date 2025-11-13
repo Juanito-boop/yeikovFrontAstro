@@ -106,11 +106,12 @@ export function GestionFacultades() {
     const departamentosFiltrados = formData.departamentos.filter(d => d.trim() !== '');
 
     // Validar email institucional
-    if (formData.emailDecano && !validateEmail(formData.emailDecano)) {
-      toast.error({
-        text: 'El correo debe ser del dominio institucional (@usantoto.edu.co o @ustatunja.edu.co)'
-      });
-      return;
+    if (formData.emailDecano) {
+      const emailError = validateEmail(formData.emailDecano);
+      if (emailError) {
+        toast.error({ text: emailError });
+        return;
+      }
     }
 
     if (facultadEditando) {
