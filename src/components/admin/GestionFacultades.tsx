@@ -3,6 +3,7 @@ import { Building2, Plus, Edit3, Trash2, Users, FileText, LogOut } from 'lucide-
 import { logoutUser } from '../../lib/auth';
 import { fetchFacultades, crearFacultad, type Facultad as FacultadType } from './request';
 import { toast } from '@pheralb/toast';
+import { validateEmail } from '../../lib/validateEmail';
 
 interface UserAuth {
   id: string
@@ -103,6 +104,14 @@ export function GestionFacultades() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const departamentosFiltrados = formData.departamentos.filter(d => d.trim() !== '');
+
+    // Validar email institucional
+    if (formData.emailDecano && !validateEmail(formData.emailDecano)) {
+      toast.error({
+        text: 'El correo debe ser del dominio institucional (@usantoto.edu.co o @ustatunja.edu.co)'
+      });
+      return;
+    }
 
     if (facultadEditando) {
       // Por ahora solo actualiza localmente hasta tener endpoint de edición
@@ -325,8 +334,16 @@ export function GestionFacultades() {
                       <input type="text" value={formData.decano} onChange={(e) => setFormData({ ...formData, decano: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-(--santoto-primary) focus:border-transparent" required />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Email del Decano</label>
-                      <input type="email" value={formData.emailDecano} onChange={(e) => setFormData({ ...formData, emailDecano: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-(--santoto-primary) focus:border-transparent" required />
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Email del Decano (Institucional)</label>
+                      <input
+                        type="email"
+                        value={formData.emailDecano}
+                        onChange={(e) => setFormData({ ...formData, emailDecano: e.target.value })}
+                        placeholder="ejemplo@usantoto.edu.co"
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-(--santoto-primary) focus:border-transparent"
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">Solo dominios: @usantoto.edu.co, @ustatunja.edu.co</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Departamentos</label>
