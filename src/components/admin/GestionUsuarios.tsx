@@ -167,8 +167,9 @@ export function GestionUsuarios() {
       return;
     }
 
-    if (!formData.facultad) {
-      toast.error({ text: 'Debe seleccionar una facultad' });
+    // Solo validar facultad para roles que la requieren
+    if (['docente', 'decano', 'director_academico'].includes(formData.rol) && !formData.facultad) {
+      toast.error({ text: 'Debe seleccionar una facultad para este rol' });
       return;
     }
 
@@ -495,34 +496,37 @@ export function GestionUsuarios() {
                   </select>
                 </div>
 
-                {(formData.rol === 'docente' || formData.rol === 'decano') && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Facultad
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.facultad}
-                        onChange={(e) => setFormData({ ...formData, facultad: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-(--santoto-primary) focus:border-transparent"
-                      />
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Facultad {['docente', 'decano', 'director_academico'].includes(formData.rol) && <span className="text-red-500">*</span>}
+                  </label>
+                  <select
+                    value={formData.facultad}
+                    onChange={(e) => setFormData({ ...formData, facultad: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-(--santoto-primary) focus:border-transparent"
+                    required={['docente', 'decano', 'director_academico'].includes(formData.rol)}
+                  >
+                    <option value="">Seleccione una facultad</option>
+                    {facultades.map((facultad) => (
+                      <option key={facultad.id} value={facultad.id}>
+                        {facultad.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                    {formData.rol === 'docente' && (
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Departamento
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.departamento}
-                          onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
-                          className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                    )}
-                  </>
+                {formData.rol === 'docente' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Departamento
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.departamento}
+                      onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 )}
 
                 <div>

@@ -83,8 +83,21 @@ export default function Planes() {
       return;
     }
 
+    // Validar que se haya seleccionado un docente
+    if (!formData.docenteId) {
+      toast.error({ text: 'Debe seleccionar un docente' });
+      return;
+    }
+
     setIsLoading(true);
     try {
+      console.log('Creando plan con datos:', {
+        titulo: formData.titulo,
+        descripcion: formData.descripcion,
+        docenteId: formData.docenteId,
+        incidenciaId: formData.incidenciaId || undefined
+      });
+
       const planCreado = await createPlan(token, {
         titulo: formData.titulo,
         descripcion: formData.descripcion,
@@ -92,11 +105,27 @@ export default function Planes() {
         incidenciaId: formData.incidenciaId || undefined
       });
 
+      console.log('Plan creado:', planCreado);
+
       // Si hay acciones, crearlas después de crear el plan
       if (acciones.length > 0 && planCreado.id) {
+        console.log(`Creando ${acciones.length} acciones para el plan ${planCreado.id}`);
+        let accionesCreadas = 0;
+
         for (const accion of acciones) {
           try {
-            await fetch('http://localhost:3000/api/acciones', {
+            // Convertir la fecha a formato ISO datetime si existe
+            const fechaObjetivoISO = accion.fechaObjetivo
+              ? new Date(accion.fechaObjetivo).toISOString()
+              : undefined;
+
+            console.log('Creando acción:', {
+              planId: planCreado.id,
+              descripcion: accion.descripcion,
+              fechaObjetivo: fechaObjetivoISO
+            });
+
+            const response = await fetch('http://localhost:3000/api/acciones', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -105,20 +134,38 @@ export default function Planes() {
               body: JSON.stringify({
                 planId: planCreado.id,
                 descripcion: accion.descripcion,
-                fechaObjetivo: accion.fechaObjetivo || undefined
+                fechaObjetivo: fechaObjetivoISO
               })
             });
-          } catch (err) {
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error('Error al crear acción:', errorData);
+              throw new Error(errorData.error || 'Error al crear acción');
+            }
+
+            const accionCreada = await response.json();
+            console.log('Acción creada:', accionCreada);
+            accionesCreadas++;
+          } catch (err: any) {
             console.error('Error al crear acción:', err);
+            toast.error({ text: 'Error al crear acción: ' + (err.message || 'Error desconocido') });
           }
         }
+
+        console.log(`${accionesCreadas}/${acciones.length} acciones creadas exitosamente`);
+        toast.success({
+          text: `Plan creado con ${accionesCreadas} ${accionesCreadas === 1 ? 'acción' : 'acciones'}`
+        });
+      } else {
+        toast.success({ text: 'Plan creado exitosamente' });
       }
 
-      toast.success({ text: 'Plan creado exitosamente' });
       const updated = await fetchAllPlans(token);
       setPlanes(updated);
       resetForm();
     } catch (error: any) {
+      console.error('Error en handleSubmit:', error);
       toast.error({ text: 'Error: ' + error.message });
     } finally {
       setIsLoading(false);
@@ -258,7 +305,7 @@ export default function Planes() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(plan.estado)}`}>{plan.estado}</span>
-                    <span className="text-xs text-slate-500">{formatDate(plan.fechaCreacion)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(plan.createdAt || plan.fechaCreacion)}</span>
                   </div>
                 </div>
               ))}

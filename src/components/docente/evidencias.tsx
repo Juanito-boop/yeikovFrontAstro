@@ -32,6 +32,7 @@ export default function DashboardEvidencias() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [comentario, setComentario] = useState<string>('');
 
   const navItems = user ? (NAV_ITEMS[user.role as Role] ?? []) : [];
   useEffect(() => {
@@ -95,17 +96,28 @@ export default function DashboardEvidencias() {
       return;
     }
 
+    if (!comentario.trim()) {
+      setError('Debes agregar un comentario o descripción para las evidencias');
+      return;
+    }
+
+    if (comentario.trim().length < 10) {
+      setError('El comentario debe tener al menos 10 caracteres');
+      return;
+    }
+
     try {
       setUploading(true);
       setError(null);
       setSuccess(null);
 
       for (const file of uploadedFiles) {
-        await subirEvidencia(selectedAccion.id, file, `Evidencia para ${selectedPlan?.titulo}`);
+        await subirEvidencia(selectedAccion.id, file, comentario.trim());
       }
 
       setSuccess(`${uploadedFiles.length} evidencia(s) subida(s) exitosamente`);
       setUploadedFiles([]);
+      setComentario('');
 
       // Recargar planes para actualizar el estado
       await cargarPlanes();
@@ -285,7 +297,7 @@ export default function DashboardEvidencias() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen flex flex-col bg-linear-to-br from-blue-50 via-white to-purple-50">
       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -370,6 +382,7 @@ export default function DashboardEvidencias() {
                   setSelectedAccion(null);
                 }
                 setUploadedFiles([]);
+                setComentario('');
               }}
               className="w-full px-4 py-2 border border-white/40 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-(--santoto-primary)"
             >
@@ -394,6 +407,7 @@ export default function DashboardEvidencias() {
                 const accion = selectedPlan.acciones?.find(a => a.id === e.target.value);
                 setSelectedAccion(accion || null);
                 setUploadedFiles([]);
+                setComentario('');
               }}
               className="w-full px-4 py-2 border border-white/40 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-(--santoto-primary)"
             >
@@ -507,12 +521,38 @@ export default function DashboardEvidencias() {
               </div>
             )}
 
+            {/* Comentario/Descripción */}
+            {uploadedFiles.length > 0 && (
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-(--santoto-primary) mb-2">
+                  Comentario / Descripción <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                  placeholder="Describe las evidencias que estás subiendo (mínimo 10 caracteres)..."
+                  rows={4}
+                  maxLength={1000}
+                  className="w-full px-4 py-3 border border-white/40 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-(--santoto-primary) resize-none"
+                  disabled={uploading}
+                />
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-xs text-slate-600">
+                    Explica qué muestran estas evidencias y cómo se relacionan con el plan de mejoramiento
+                  </p>
+                  <p className={`text-xs ${comentario.length < 10 ? 'text-red-500' : comentario.length > 900 ? 'text-orange-500' : 'text-slate-500'}`}>
+                    {comentario.length}/1000 caracteres {comentario.length < 10 && `(mínimo 10)`}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Upload Button */}
             {uploadedFiles.length > 0 && (
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={handleSubirEvidencias}
-                  disabled={uploading || !selectedAccion}
+                  disabled={uploading || !selectedAccion || !comentario.trim() || comentario.trim().length < 10}
                   className="flex items-center space-x-2 px-6 py-3 bg-(--santoto-primary) text-white font-medium rounded-xl hover:bg-(--santoto-primary)/90 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploading ? (
@@ -539,6 +579,10 @@ export default function DashboardEvidencias() {
             <li className="flex items-start space-x-2">
               <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 shrink-0"></span>
               <span>Los archivos deben estar relacionados directamente con el plan de mejoramiento</span>
+            </li>
+            <li className="flex items-start space-x-2">
+              <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 shrink-0"></span>
+              <span>Es obligatorio agregar un comentario descriptivo (mínimo 10 caracteres)</span>
             </li>
             <li className="flex items-start space-x-2">
               <span className="w-1.5 h-1.5 bg-(--santoto-primary) rounded-full mt-2 shrink-0"></span>

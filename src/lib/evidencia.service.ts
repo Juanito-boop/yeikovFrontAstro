@@ -53,17 +53,19 @@ export async function obtenerPlanesDocente(): Promise<PlanMejora[]> {
 export async function subirEvidencia(
   accionId: string,
   file: File,
-  comentario?: string
+  comentario: string
 ): Promise<Evidencia> {
   const token = localStorage.getItem("token");
   if (!token) throw new Error("No autenticado");
 
+  if (!comentario || comentario.trim().length < 10) {
+    throw new Error("El comentario debe tener al menos 10 caracteres");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("accionId", accionId);
-  if (comentario) {
-    formData.append("comentario", comentario);
-  }
+  formData.append("comentario", comentario.trim());
 
   const response = await fetch(`${API_CONFIG.baseURL}/evidencias`, {
     method: "POST",

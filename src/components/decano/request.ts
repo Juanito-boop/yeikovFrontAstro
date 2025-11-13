@@ -9,12 +9,28 @@ export interface DecanoStats {
   tasaCumplimiento: number;
 }
 
+export interface DecanoReportes {
+  totalPlanes: number;
+  totalDocentes: number;
+  planesCompletados: number;
+  tasaCumplimiento: number;
+}
+
+export interface Departamento {
+  nombre: string;
+  docentes: number;
+  planes: number;
+  cumplimiento: number;
+}
+
 export interface Plan {
   id: string;
   titulo: string;
   descripcion: string;
   estado: string;
   fechaCreacion: string;
+  createdAt?: string;
+  updatedAt?: string;
   docente: {
     id: string;
     nombre: string;
@@ -40,7 +56,37 @@ export interface Docente {
 
 // Fetch decano statistics
 export async function fetchDecanoStats(token: string): Promise<DecanoStats> {
-  const response = await fetch(`${API_BASE_URL}/director/counts`, {
+  const response = await fetch(`${API_BASE_URL}/decano/stats`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+// Fetch reportes del decano
+export async function fetchDecanoReportes(token: string): Promise<DecanoReportes> {
+  const response = await fetch(`${API_BASE_URL}/decano/reportes`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+// Fetch departamentos de la facultad
+export async function fetchDepartamentos(token: string): Promise<Departamento[]> {
+  const response = await fetch(`${API_BASE_URL}/decano/departamentos`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -51,17 +97,7 @@ export async function fetchDecanoStats(token: string): Promise<DecanoStats> {
   }
 
   const result = await response.json();
-
-  // Calcular estadísticas para el decano
-  const totalPlanes = result.planes || 0;
-  const planesCompletados = result.planesPorEscuela?.reduce((acc: number, e: any) => acc + e.planesCompletados, 0) || 0;
-
-  return {
-    totalDocentes: result.docentes || 0,
-    totalPlanes: totalPlanes,
-    planesCompletados: planesCompletados,
-    tasaCumplimiento: totalPlanes > 0 ? Math.round((planesCompletados / totalPlanes) * 100) : 0,
-  };
+  return result.departamentos || [];
 }
 
 // Fetch planes for decano review

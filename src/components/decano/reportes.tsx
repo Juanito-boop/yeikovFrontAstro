@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, Download, TrendingUp, Users, FileText, LogOut } from 'lucide-react';
 import { logoutUser } from '../../lib/auth';
+import { fetchDecanoReportes, fetchDepartamentos, type DecanoReportes, type Departamento } from './request';
+import { toast } from '@pheralb/toast';
 
 interface User {
   id: string
@@ -24,8 +26,10 @@ export function ReportesDecano() {
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
-
   const [user, setUser] = useState<User | null>(null);
+  const [reportes, setReportes] = useState<DecanoReportes | null>(null);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const navItems = user ? (NAV_ITEMS[user.role as Role] ?? []) : [];
 
@@ -42,45 +46,69 @@ export function ReportesDecano() {
     }
   }, []);
 
+  // Fetch data
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    Promise.all([
+      fetchDecanoReportes(token),
+      fetchDepartamentos(token)
+    ])
+      .then(([reportesData, departamentosData]) => {
+        setReportes(reportesData);
+        setDepartamentos(departamentosData);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        toast.error({ text: 'Error al cargar datos: ' + err.message });
+        setIsLoading(false);
+      });
+  }, []);
+
   const reportesFacultad = [
     {
       id: '1',
       titulo: 'Rendimiento Departamental',
       descripcion: 'Análisis comparativo entre departamentos de la facultad',
-      fechaGeneracion: '2025-01-20',
-      registros: 45,
+      fechaGeneracion: new Date().toISOString().split('T')[0],
+      registros: departamentos.reduce((acc, d) => acc + d.planes, 0),
       tipo: 'departamental'
     },
     {
       id: '2',
       titulo: 'Seguimiento Docente',
       descripcion: 'Actividad y cumplimiento del cuerpo docente',
-      fechaGeneracion: '2025-01-19',
-      registros: 28,
+      fechaGeneracion: new Date().toISOString().split('T')[0],
+      registros: reportes?.totalDocentes || 0,
       tipo: 'docente'
     },
     {
       id: '3',
       titulo: 'Planes de Mejoramiento',
       descripcion: 'Estado y progreso de planes asignados',
-      fechaGeneracion: '2025-01-18',
-      registros: 15,
+      fechaGeneracion: new Date().toISOString().split('T')[0],
+      registros: reportes?.totalPlanes || 0,
       tipo: 'planes'
     }
   ];
 
-  const metricas = [
-    { label: 'Docentes Facultad', value: '28', icon: Users, color: 'blue' },
-    { label: 'Planes Supervisados', value: '15', icon: FileText, color: 'green' },
-    { label: 'Tasa Cumplimiento', value: '87%', icon: TrendingUp, color: 'purple' },
-    { label: 'Reportes Generados', value: '12', icon: BarChart3, color: 'orange' },
-  ];
+  const metricas = reportes ? [
+    { label: 'Docentes Facultad', value: reportes.totalDocentes.toString(), icon: Users, color: 'blue' },
+    { label: 'Planes Supervisados', value: reportes.totalPlanes.toString(), icon: FileText, color: 'green' },
+    { label: 'Tasa Cumplimiento', value: `${reportes.tasaCumplimiento}%`, icon: TrendingUp, color: 'purple' },
+    { label: 'Reportes Generados', value: '3', icon: BarChart3, color: 'orange' },
+  ] : [];
 
-  const departamentosData = [
-    { nombre: 'Ingeniería de Sistemas', docentes: 12, planes: 8, cumplimiento: 95 },
-    { nombre: 'Ingeniería Industrial', docentes: 8, planes: 4, cumplimiento: 85 },
-    { nombre: 'Ingeniería Civil', docentes: 8, planes: 3, cumplimiento: 78 },
-  ];
+  const departamentosData = departamentos.map(d => ({
+    nombre: d.nombre,
+    docentes: d.docentes,
+    planes: d.planes,
+    cumplimiento: d.cumplimiento
+  }));
 
   const initials = useMemo(() => {
     if (!user) return '';
@@ -117,7 +145,7 @@ export function ReportesDecano() {
                 <a
                   key={label}
                   href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Dashboard' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                  className={`text-sm font-medium cursor-pointer ${label === 'Reportes' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {label}
                 </a>
               ))}
@@ -161,29 +189,35 @@ export function ReportesDecano() {
 
         {/* Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metricas.map((metric, index) => {
-            const Icon = metric.icon;
-            const colorClasses = {
-              blue: 'from-blue-500 to-blue-600',
-              green: 'from-green-500 to-green-600',
-              purple: 'from-purple-500 to-purple-600',
-              orange: 'from-orange-500 to-orange-600',
-            };
+          {isLoading ? (
+            <div className="col-span-4 flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            metricas.map((metric, index) => {
+              const Icon = metric.icon;
+              const colorClasses = {
+                blue: 'from-blue-500 to-blue-600',
+                green: 'from-green-500 to-green-600',
+                purple: 'from-purple-500 to-purple-600',
+                orange: 'from-orange-500 to-orange-600',
+              };
 
-            return (
-              <div key={index} className="backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${colorClasses[metric.color as keyof typeof colorClasses]} flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
+              return (
+                <div key={index} className="backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${colorClasses[metric.color as keyof typeof colorClasses]} flex items-center justify-center`}>
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900 mb-1">{metric.value}</p>
+                    <p className="text-sm text-slate-600">{metric.label}</p>
                   </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900 mb-1">{metric.value}</p>
-                  <p className="text-sm text-slate-600">{metric.label}</p>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Rendimiento por Departamento */}
@@ -193,31 +227,41 @@ export function ReportesDecano() {
           </div>
           <div className="p-6">
             <div className="space-y-6">
-              {departamentosData.map((dept, index) => (
-                <div key={index} className="p-4 bg-slate-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-900">{dept.nombre}</h3>
-                      <p className="text-xs text-slate-600">
-                        {dept.docentes} docentes • {dept.planes} planes
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-slate-900">{dept.cumplimiento}%</p>
-                      <p className="text-xs text-slate-600">cumplimiento</p>
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all duration-500 ${dept.cumplimiento >= 90 ? 'bg-linear-to-r from-green-500 to-emerald-500' :
-                        dept.cumplimiento >= 80 ? 'bg-linear-to-r from-yellow-500 to-orange-500' :
-                          'bg-linear-to-r from-red-500 to-red-600'
-                        }`}
-                      style={{ width: `${dept.cumplimiento}%` }}
-                    ></div>
-                  </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-              ))}
+              ) : departamentosData.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-slate-500">No hay datos de departamentos disponibles</p>
+                </div>
+              ) : (
+                departamentosData.map((dept, index) => (
+                  <div key={index} className="p-4 bg-slate-50 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900">{dept.nombre}</h3>
+                        <p className="text-xs text-slate-600">
+                          {dept.docentes} docentes • {dept.planes} planes
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-slate-900">{dept.cumplimiento}%</p>
+                        <p className="text-xs text-slate-600">cumplimiento</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-500 ${dept.cumplimiento >= 90 ? 'bg-linear-to-r from-green-500 to-emerald-500' :
+                          dept.cumplimiento >= 80 ? 'bg-linear-to-r from-yellow-500 to-orange-500' :
+                            'bg-linear-to-r from-red-500 to-red-600'
+                          }`}
+                        style={{ width: `${dept.cumplimiento}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

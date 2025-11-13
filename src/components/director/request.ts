@@ -41,6 +41,8 @@ export interface Plan {
   descripcion: string;
   estado: string;
   fechaCreacion: string;
+  createdAt?: string;
+  updatedAt?: string;
   docente: {
     id: string;
     nombre: string;
@@ -135,9 +137,11 @@ export async function createPlan(token: string, body: CreatePlan): Promise<Plan>
   });
   if (!response.ok) {
     const error = await response.json();
+    console.error('Error creating plan:', error);
     throw new Error(error.error || error.message || "Failed to create plan");
   }
   const result = await response.json();
+  console.log('Plan created successfully:', result);
   // El backend devuelve { message: '...', plan: {...} }
   return result.plan || result;
 }
