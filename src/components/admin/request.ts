@@ -135,6 +135,42 @@ export async function crearUsuario(token: string, data: {
   }
 }
 
+// Update user
+export async function actualizarUsuario(token: string, id: string, data: {
+  nombre?: string;
+  apellido?: string;
+  email?: string;
+  role?: string;
+  schoolId?: string;
+}): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/docentes/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+}
+
+// Delete user
+export async function eliminarUsuario(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/docentes/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+}
+
 // Create new facultad
 export async function crearFacultad(token: string, data: {
   nombre: string;
@@ -153,6 +189,40 @@ export async function crearFacultad(token: string, data: {
   }
 
   return await response.json();
+}
+
+// Update facultad
+export async function actualizarFacultad(token: string, id: string, data: {
+  nombre?: string;
+}): Promise<Facultad> {
+  const response = await fetch(`${API_BASE_URL}/schools/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+// Delete facultad
+export async function eliminarFacultad(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/schools/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
 }
 
 // Fetch all plans
