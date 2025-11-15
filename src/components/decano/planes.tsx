@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { FileText, CheckCircle, XCircle, MessageSquare, Calendar, Eye, Edit3, LogOut } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, MessageSquare, Calendar, Eye, Edit3 } from 'lucide-react';
 import { fetchPlanesDecano, aprobarPlan, rechazarPlan, type Plan as PlanType } from './request';
 import { toast } from '@pheralb/toast';
 import { logoutUser } from '../../lib/auth';
+import { Header } from '../Header';
 
 interface Plan {
   id: string;
@@ -49,8 +50,8 @@ export function PlanesRevision() {
   const [filtroEstado, setFiltroEstado] = useState<string>('todos');
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  
-    const navItems = user ? (NAV_ITEMS[user.role as Role] ?? []) : [];
+
+  const navItems = user ? (NAV_ITEMS[user.role as Role] ?? []) : [];
 
   // Safely parse stored user
   useEffect(() => {
@@ -84,14 +85,14 @@ export function PlanesRevision() {
   }, []);
 
   const initials = useMemo(() => {
-      if (!user) return '';
-      const n = (user.nombre || '').trim();
-      const a = (user.apellido || '').trim();
-      const first = n ? n[0] : '';
-      const last = a ? a[0] : '';
-      const result = `${first}${last}`.toUpperCase();
-      return result || '';
-    }, [user]);
+    if (!user) return '';
+    const n = (user.nombre || '').trim();
+    const a = (user.apellido || '').trim();
+    const first = n ? n[0] : '';
+    const last = a ? a[0] : '';
+    const result = `${first}${last}`.toUpperCase();
+    return result || '';
+  }, [user]);
 
   const planesFiltrados = planes.filter(plan =>
     filtroEstado === 'todos' || plan.estado === filtroEstado
@@ -152,53 +153,16 @@ export function PlanesRevision() {
         backgroundAttachment: 'fixed'
       }}
     >
-            <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full mb-8">
-              <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-                  <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-                  </div>
-                </div>
-      
-                {navItems.length > 0 ? (
-                  <nav className="hidden md:flex items-center gap-8">
-                    {navItems.map((label) => (
-                      <a
-                        key={label}
-                        href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                        className={`text-sm font-medium cursor-pointer ${label === 'Revisar Planes' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                        {label}
-                      </a>
-                    ))}
-                  </nav>
-                ) : null}
-      
-                <div className="flex items-center gap-3">
-                  <div>
-                    <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-                    <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-                  </div>
-      
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    {initials}
-                  </div>
-      
-                  <button
-                    onClick={() => {
-                      setUser(null);
-                      logoutUser(true);
-                    }}
-                    aria-label="Cerrar sesión"
-                    title="Cerrar sesión"
-                    className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-                  >
-                    <LogOut />
-                  </button>
-                </div>
-              </div>
-            </header>
+      <Header
+        user={user}
+        initials={initials}
+        navItems={navItems.map((label) => ({
+          label,
+          href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+        }))}
+        activeItem="Revisar Planes"
+        onLogout={() => setUser(null)}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">

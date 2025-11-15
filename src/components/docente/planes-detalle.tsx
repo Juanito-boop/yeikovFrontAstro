@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { FileText, ArrowLeft } from "lucide-react";
+import { Header } from '../Header';
 import type { Plan } from './request';
 
 interface UserAuth {
@@ -54,59 +55,16 @@ export default function PlanDetalle({ plan }: PlanDetalleProps) {
       }}
     >
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-50 w-full mb-8">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">SGPM</h1>
-              <p className="text-xs text-slate-500">Sistema de Gestión de Planes</p>
-            </div>
-          </div>
-
-          {navItems.length > 0 && (
-            <nav className="hidden md:flex items-center gap-8">
-              {navItems.map((label) => (
-                <a
-                  key={label}
-                  href={
-                    label === "Dashboard"
-                      ? "/dashboard"
-                      : `/dashboard/${label.toLowerCase().replace(/\s+/g, "-")}`
-                  }
-                  className={`text-sm font-medium cursor-pointer ${label === "Planes" ? "text-blue-600" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                >
-                  {label}
-                </a>
-              ))}
-            </nav>
-          )}
-
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl text-end font-bold text-slate-900">
-                {user?.nombre} {user?.apellido}
-              </h1>
-              <p className="text-xs text-end text-slate-500">
-                {user?.role} - {user?.facultad}
-              </p>
-            </div>
-
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {initials}
-            </div>
-
-            <button
-              onClick={() => window.history.back()}
-              title="Volver Atrás"
-              className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-            >
-              <ArrowLeft />
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        user={user}
+        initials={initials}
+        navItems={navItems.map((label) => ({
+          label,
+          href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+        }))}
+        activeItem="Mis Planes"
+        onLogout={() => window.history.back()}
+      />
 
       {/* Plan Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
@@ -143,12 +101,12 @@ export default function PlanDetalle({ plan }: PlanDetalleProps) {
               <h3 className="text-sm font-semibold text-slate-800 mb-1">Estado</h3>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-medium ${plan.estado === "pendiente"
-                    ? "bg-amber-100 text-amber-700"
-                    : plan.estado === "completado"
-                      ? "bg-green-100 text-green-700"
-                      : plan.estado === "en_progreso"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-red-100 text-red-700"
+                  ? "bg-amber-100 text-amber-700"
+                  : plan.estado === "completado"
+                    ? "bg-green-100 text-green-700"
+                    : plan.estado === "en_progreso"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-red-100 text-red-700"
                   }`}
               >
                 {plan.estado.replace('_', ' ')}

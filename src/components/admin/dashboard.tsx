@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { logoutUser } from '../../lib/auth';
 import { fetchAdminStats, type AdminStats } from './request';
 import { toast } from '@pheralb/toast';
+import { ActividadRecienteWidget } from '../ActividadRecienteWidget';
+import { fetchAlertas, fetchDepartamentos, type Alerta, type DepartamentoStats } from '../../lib/dashboard.service';
 
 interface User {
   id: string
@@ -26,6 +28,8 @@ const NAV_ITEMS: Record<Role, string[]> = {
 export function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [alertas, setAlertas] = useState<Alerta[]>([]);
+  const [departamentos, setDepartamentos] = useState<DepartamentoStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navItems = user ? (NAV_ITEMS[user.role as Role] ?? []) : [];
 
@@ -48,13 +52,19 @@ export function AdminDashboard() {
       return;
     }
 
-    fetchAdminStats(token)
-      .then(data => {
-        setStats(data);
+    Promise.all([
+      fetchAdminStats(token),
+      fetchAlertas(),
+      fetchDepartamentos()
+    ])
+      .then(([statsData, alertasData, departamentosData]) => {
+        setStats(statsData);
+        setAlertas(alertasData);
+        setDepartamentos(departamentosData);
         setIsLoading(false);
       })
       .catch(err => {
-        toast.error({ text: 'Error al cargar estadísticas: ' + err.message });
+        toast.error({ text: 'Error al cargar datos: ' + err.message });
         setIsLoading(false);
       });
   }, []);
@@ -74,19 +84,6 @@ export function AdminDashboard() {
     { label: 'Pendientes', value: stats.planesPendientes.toString(), icon: Clock, color: 'yellow', change: '0%' },
     { label: 'Completados', value: stats.planesCompletados.toString(), icon: CheckCircle, color: 'emerald', change: '+0%' },
   ] : [];
-
-  const recentActions = [
-    { action: 'Plan asignado a Diego Vela', subject: 'Machine Learning', time: '30 min', type: 'assignment' },
-    { action: 'Evidencia aprobada', subject: 'Base de Datos', time: '1 hora', type: 'approval' },
-    { action: 'Nuevo docente registrado', subject: 'Ana García', time: '2 horas', type: 'user' },
-    { action: 'Plan completado', subject: 'Algoritmos', time: '3 horas', type: 'completion' },
-  ];
-
-  const departmentStats = [
-    { name: 'Ingeniería de Sistemas', plans: 12, completed: 8, pending: 4 },
-    { name: 'Matemáticas', plans: 8, completed: 6, pending: 2 },
-    { name: 'Física', plans: 6, completed: 4, pending: 2 },
-  ];
 
   return (
     <div
@@ -150,64 +147,37 @@ export function AdminDashboard() {
           <div className="lg:col-span-2 space-y-8">
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 cursor-pointer">
+              <a href="/dashboard/usuarios" className="block group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 cursor-pointer">
                 <div className="flex items-center space-x-4 mb-4">
                   <div className="w-14 h-14 bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
                     <Users className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 group-hover:text-purple-700 transition-colors">
-                      Gestionar Docentes
+                      Gestionar Usuarios
                     </h3>
                     <p className="text-slate-600 text-sm">Administrar usuarios del sistema</p>
                   </div>
                 </div>
-              </div>
+              </a>
 
-              <div className="group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 cursor-pointer">
+              <a href="/dashboard/facultades" className="block group backdrop-blur-md bg-white/60 rounded-2xl p-6 shadow-lg border-2 border-white/40 hover:shadow-xl hover:bg-white/70 transition-all duration-300 cursor-pointer">
                 <div className="flex items-center space-x-4 mb-4">
                   <div className="w-14 h-14 bg-linear-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
                     <Settings className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">
-                      Configuración
+                      Gestionar Facultades
                     </h3>
-                    <p className="text-slate-600 text-sm">Ajustes del sistema</p>
+                    <p className="text-slate-600 text-sm">Configurar facultades y escuelas</p>
                   </div>
                 </div>
-              </div>
+              </a>
             </div>
 
-            {/* Recent Activity */}
-            <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border-2 border-white/40">
-              <div className="p-6 border-b border-white/30">
-                <h2 className="text-lg font-semibold text-(--santoto-primary)">Actividad Reciente del Sistema</h2>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {recentActions.map((action, index) => (
-                    <div key={index} className="flex items-center space-x-4 p-4 rounded-xl hover:bg-white/40 transition-colors duration-200">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${action.type === 'assignment' ? 'bg-(--santoto-primary)/20 text-(--santoto-primary)' :
-                        action.type === 'approval' ? 'bg-green-500/20 text-green-700' :
-                          action.type === 'user' ? 'bg-purple-500/20 text-purple-700' :
-                            'bg-emerald-500/20 text-emerald-700'
-                        }`}>
-                        {action.type === 'assignment' ? <FileText className="w-5 h-5" /> :
-                          action.type === 'approval' ? <CheckCircle className="w-5 h-5" /> :
-                            action.type === 'user' ? <Users className="w-5 h-5" /> :
-                              <CheckCircle className="w-5 h-5" />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900">{action.action}</p>
-                        <p className="text-sm text-slate-700">{action.subject}</p>
-                      </div>
-                      <span className="text-xs text-slate-600 font-medium">hace {action.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Recent Activity - Logs de Auditoría */}
+            <ActividadRecienteWidget limit={10} />
           </div>
 
           {/* Sidebar */}
@@ -218,26 +188,46 @@ export function AdminDashboard() {
                 <h3 className="text-lg font-semibold text-(--santoto-primary)">Resumen por Departamento</h3>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  {departmentStats.map((dept, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-slate-900">{dept.name}</p>
-                        <span className="text-xs text-slate-500">{dept.plans} planes</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div
-                          className="bg-linear-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(dept.completed / dept.plans) * 100}%` }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-xs text-slate-600">
-                        <span>{dept.completed} completados</span>
-                        <span>{dept.pending} pendientes</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {isLoading ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-600">Cargando departamentos...</p>
+                  </div>
+                ) : departamentos.length > 0 ? (
+                  <div className="space-y-4">
+                    {departamentos.map((dept) => {
+                      const progreso = dept.totalPlanes > 0
+                        ? (dept.planesCompletados / dept.totalPlanes) * 100
+                        : 0;
+
+                      return (
+                        <div key={dept.id} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-900">{dept.nombre}</p>
+                            <span className="text-xs text-slate-500">{dept.totalPlanes} planes</span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-2">
+                            <div
+                              className="bg-linear-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${progreso}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-xs text-slate-600">
+                            <span>{dept.planesCompletados} completados</span>
+                            <span>{dept.planesActivos} activos</span>
+                            <span>{dept.planesPendientes} pendientes</span>
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {dept.totalDocentes} docentes
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-600">No hay departamentos registrados</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -248,14 +238,29 @@ export function AdminDashboard() {
                 <h3 className="text-lg font-semibold text-orange-900 drop-shadow">Alertas del Sistema</h3>
               </div>
               <div className="space-y-3">
-                <div className="p-3 bg-white/60 rounded-xl">
-                  <p className="text-sm font-medium text-orange-900">3 planes próximos a vencer</p>
-                  <p className="text-xs text-orange-700">Requieren atención inmediata</p>
-                </div>
-                <div className="p-3 bg-white/60 rounded-xl">
-                  <p className="text-sm font-medium text-orange-900">2 evidencias sin revisar</p>
-                  <p className="text-xs text-orange-700">Pendientes de aprobación</p>
-                </div>
+                {isLoading ? (
+                  <div className="p-3 bg-white/60 rounded-xl">
+                    <p className="text-sm text-orange-700">Cargando alertas...</p>
+                  </div>
+                ) : alertas.length > 0 ? (
+                  alertas.map((alerta, index) => (
+                    <div
+                      key={index}
+                      className={`p-3 bg-white/60 rounded-xl border-l-4 ${alerta.prioridad === 'alta' ? 'border-red-500' :
+                        alerta.prioridad === 'media' ? 'border-orange-500' :
+                          'border-green-500'
+                        }`}
+                    >
+                      <p className="text-sm font-medium text-orange-900">{alerta.mensaje}</p>
+                      <p className="text-xs text-orange-700">{alerta.detalle}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-3 bg-white/60 rounded-xl border-l-4 border-green-500">
+                    <p className="text-sm font-medium text-green-900">Sistema operando normalmente</p>
+                    <p className="text-xs text-green-700">No hay alertas en este momento</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Building2, Plus, Edit3, Trash2, Users, FileText, LogOut } from 'lucide-react';
+import { Building2, Plus, Edit3, Trash2, Users, FileText } from 'lucide-react';
 import { logoutUser } from '../../lib/auth';
-import { fetchFacultades, crearFacultad, type Facultad as FacultadType } from './request';
+import { fetchFacultades, crearFacultad, actualizarFacultad, eliminarFacultad as deleteFacultad, type Facultad as FacultadType } from './request';
 import { toast } from '@pheralb/toast';
 import { validateEmail } from '../../lib/validateEmail';
+import { Header } from '../Header';
 
 interface UserAuth {
   id: string
@@ -66,12 +67,12 @@ export function GestionFacultades() {
         const mappedFacultades = data.map((f: FacultadType) => ({
           id: f.id,
           nombre: f.nombre,
-          decano: 'N/A',
-          emailDecano: 'N/A',
+          decano: f.decano || 'No asignado',
+          emailDecano: f.emailDecano || 'No asignado',
           departamentos: [],
           totalDocentes: f.cantidadDocentes || 0,
           planesActivos: 0,
-          fechaCreacion: 'N/A',
+          fechaCreacion: new Date().toLocaleDateString('es-ES'),
           estado: 'activa' as 'activa' | 'inactiva'
         }));
         setFacultades(mappedFacultades);
@@ -114,36 +115,55 @@ export function GestionFacultades() {
       }
     }
 
-    if (facultadEditando) {
-      // Por ahora solo actualiza localmente hasta tener endpoint de edición
-      setFacultades(facultades.map(f => f.id === facultadEditando ? { ...f, ...formData, departamentos: departamentosFiltrados } : f));
-      resetForm();
-    } else {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error({ text: 'No hay sesión activa' });
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
+    }
 
-      try {
-        const nuevaFacultad = await crearFacultad(token, { nombre: formData.nombre });
+    try {
+      if (facultadEditando) {
+        // Actualizar facultad existente
+        const facultadActualizada = await actualizarFacultad(token, facultadEditando, {
+          nombre: formData.nombre,
+          decano: formData.decano || undefined,
+          emailDecano: formData.emailDecano || undefined
+        });
+
+        setFacultades(facultades.map(f => f.id === facultadEditando ? {
+          ...f,
+          nombre: facultadActualizada.nombre,
+          decano: facultadActualizada.decano || 'No asignado',
+          emailDecano: facultadActualizada.emailDecano || 'No asignado',
+          departamentos: departamentosFiltrados,
+          estado: formData.estado
+        } : f));
+        toast.success({ text: 'Facultad actualizada exitosamente' });
+      } else {
+        // Crear nueva facultad
+        const nuevaFacultad = await crearFacultad(token, {
+          nombre: formData.nombre,
+          decano: formData.decano || undefined,
+          emailDecano: formData.emailDecano || undefined
+        });
+
         const mapped: Facultad = {
           id: nuevaFacultad.id,
           nombre: nuevaFacultad.nombre,
-          decano: 'N/A',
-          emailDecano: 'N/A',
-          departamentos: [],
+          decano: nuevaFacultad.decano || 'No asignado',
+          emailDecano: nuevaFacultad.emailDecano || 'No asignado',
+          departamentos: departamentosFiltrados,
           totalDocentes: nuevaFacultad.cantidadDocentes || 0,
           planesActivos: 0,
-          fechaCreacion: 'N/A',
-          estado: 'activa'
+          fechaCreacion: new Date().toLocaleDateString('es-ES'),
+          estado: formData.estado
         };
         setFacultades([...facultades, mapped]);
         toast.success({ text: 'Facultad creada exitosamente' });
-        resetForm();
-      } catch (err: any) {
-        toast.error({ text: 'Error al crear facultad: ' + err.message });
       }
+      resetForm();
+    } catch (err: any) {
+      toast.error({ text: `Error: ${err.message}` });
     }
   };
 
@@ -159,9 +179,23 @@ export function GestionFacultades() {
     setMostrarModal(true);
   };
 
-  const eliminarFacultad = (id: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar esta facultad?')) {
+  const eliminarFacultad = async (id: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta facultad?')) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
+    }
+
+    try {
+      await deleteFacultad(token, id);
       setFacultades(facultades.filter(f => f.id !== id));
+      toast.success({ text: 'Facultad eliminada exitosamente' });
+    } catch (err: any) {
+      toast.error({ text: `Error al eliminar: ${err.message}` });
     }
   };
 
@@ -187,53 +221,16 @@ export function GestionFacultades() {
       }}
     >
       {/* Header */}
-      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full mb-8">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-            </div>
-          </div>
-
-          {navItems.length > 0 ? (
-            <nav className="hidden md:flex items-center gap-8">
-              {navItems.map((label) => (
-                <a
-                  key={label}
-                  href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Facultades' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-          ) : null}
-
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-              <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-            </div>
-
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {initials}
-            </div>
-
-            <button
-              onClick={() => {
-                setUser(null);
-                logoutUser(true);
-              }}
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
-              className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-            >
-              <LogOut />
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        user={user}
+        initials={initials}
+        navItems={navItems.map((label) => ({
+          label,
+          href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+        }))}
+        activeItem="Facultades"
+        onLogout={() => setUser(null)}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         {isLoading ? (

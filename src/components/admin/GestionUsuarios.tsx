@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit3, Trash2, Shield, Crown, Building2, User, Search, LogOut } from 'lucide-react';
+import { Plus, Edit3, Trash2, Shield, Crown, Building2, User, Search } from 'lucide-react';
 import { logoutUser } from '../../lib/auth';
-import { fetchUsuarios, crearUsuario, fetchFacultades, type Usuario as UsuarioType, type Facultad } from './request';
+import { fetchUsuarios, crearUsuario, actualizarUsuario, desactivarUsuario, activarUsuario, fetchFacultades, type Usuario as UsuarioType, type Facultad } from './request';
 import { toast } from '@pheralb/toast';
 import { validateEmail } from '../../lib/validateEmail';
+import { Header } from '../Header';
 
 interface UserAuth {
   id: string
@@ -29,6 +30,7 @@ interface Usuario {
   email: string;
   rol: string;
   facultad?: string;
+  schoolId?: string;
   departamento?: string;
   estado: 'activo' | 'inactivo';
   fechaCreacion: string;
@@ -72,10 +74,11 @@ export function GestionUsuarios() {
           email: u.email,
           rol: u.role || 'docente',
           facultad: u.school?.nombre,
+          schoolId: u.school?.id,
           departamento: '',
-          estado: 'activo' as 'activo' | 'inactivo',
-          fechaCreacion: 'N/A',
-          ultimoAcceso: 'N/A'
+          estado: (u as any).activo !== false ? 'activo' : 'inactivo' as 'activo' | 'inactivo',
+          fechaCreacion: new Date().toLocaleDateString('es-ES'),
+          ultimoAcceso: 'Recientemente'
         }));
         setUsuarios(mappedUsuarios);
         setFacultades(facultadesData);
@@ -156,12 +159,6 @@ export function GestionUsuarios() {
       return;
     }
 
-    if (usuarioEditando) {
-      // TODO: Implementar endpoint de edición en el backend
-      toast.info({ text: 'La edición de usuarios aún no está implementada' });
-      return;
-    }
-
     // Validaciones
     if (!formData.nombre || !formData.email) {
       toast.error({ text: 'Nombre y email son obligatorios' });
@@ -182,39 +179,71 @@ export function GestionUsuarios() {
     }
 
     try {
-      // Separar nombre y apellido
-      const nombreParts = formData.nombre.trim().split(' ');
-      const nombre = nombreParts[0];
-      const apellido = nombreParts.slice(1).join(' ') || nombreParts[0];
+      if (usuarioEditando) {
+        // Actualizar usuario existente
+        const nombreParts = formData.nombre.trim().split(' ');
+        const nombre = nombreParts[0];
+        const apellido = nombreParts.slice(1).join(' ') || nombreParts[0];
 
-      await crearUsuario(token, {
-        nombre,
-        apellido,
-        email: formData.email,
-        password: 'temporal123', // Password temporal que el usuario debe cambiar
-        schoolId: formData.facultad,
-        role: formData.rol
-      });
+        await actualizarUsuario(token, usuarioEditando.id, {
+          nombre,
+          apellido,
+          email: formData.email,
+          role: formData.rol,
+          schoolId: formData.facultad || undefined
+        });
 
-      // Recargar usuarios
-      const usuariosActualizados = await fetchUsuarios(token);
-      const mappedUsuarios = usuariosActualizados.map((u: UsuarioType) => ({
-        id: u.id,
-        nombre: `${u.nombre} ${u.apellido}`,
-        email: u.email,
-        rol: u.role || 'docente',
-        facultad: u.school?.nombre,
-        departamento: '',
-        estado: 'activo' as 'activo' | 'inactivo',
-        fechaCreacion: 'N/A',
-        ultimoAcceso: 'N/A'
-      }));
-      setUsuarios(mappedUsuarios);
+        // Recargar usuarios
+        const usuariosActualizados = await fetchUsuarios(token);
+        const mappedUsuarios = usuariosActualizados.map((u: UsuarioType) => ({
+          id: u.id,
+          nombre: `${u.nombre} ${u.apellido}`,
+          email: u.email,
+          rol: u.role || 'docente',
+          facultad: u.school?.nombre,
+          schoolId: u.school?.id,
+          departamento: '',
+          estado: (u as any).activo !== false ? 'activo' : 'inactivo' as 'activo' | 'inactivo',
+          fechaCreacion: new Date().toLocaleDateString('es-ES'),
+          ultimoAcceso: 'Recientemente'
+        }));
+        setUsuarios(mappedUsuarios);
+        toast.success({ text: 'Usuario actualizado exitosamente' });
+      } else {
+        // Crear nuevo usuario
+        const nombreParts = formData.nombre.trim().split(' ');
+        const nombre = nombreParts[0];
+        const apellido = nombreParts.slice(1).join(' ') || nombreParts[0];
 
-      toast.success({ text: 'Usuario creado exitosamente' });
+        await crearUsuario(token, {
+          nombre,
+          apellido,
+          email: formData.email,
+          password: 'temporal123',
+          schoolId: formData.facultad,
+          role: formData.rol
+        });
+
+        // Recargar usuarios
+        const usuariosActualizados = await fetchUsuarios(token);
+        const mappedUsuarios = usuariosActualizados.map((u: UsuarioType) => ({
+          id: u.id,
+          nombre: `${u.nombre} ${u.apellido}`,
+          email: u.email,
+          rol: u.role || 'docente',
+          facultad: u.school?.nombre,
+          schoolId: u.school?.id,
+          departamento: '',
+          estado: (u as any).activo !== false ? 'activo' : 'inactivo' as 'activo' | 'inactivo',
+          fechaCreacion: new Date().toLocaleDateString('es-ES'),
+          ultimoAcceso: 'Recientemente'
+        }));
+        setUsuarios(mappedUsuarios);
+        toast.success({ text: 'Usuario creado exitosamente' });
+      }
       resetForm();
     } catch (error: any) {
-      toast.error({ text: 'Error al crear usuario: ' + error.message });
+      toast.error({ text: 'Error: ' + error.message });
     }
   };
 
@@ -237,16 +266,42 @@ export function GestionUsuarios() {
       nombre: usuario.nombre,
       email: usuario.email,
       rol: usuario.rol,
-      facultad: usuario.facultad || '',
+      facultad: usuario.schoolId || '',
       departamento: usuario.departamento || '',
       estado: usuario.estado
     });
     setMostrarModal(true);
   };
 
-  const eliminarUsuario = (id: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-      setUsuarios(usuarios.filter(u => u.id !== id));
+  const eliminarUsuario = async (usuario: Usuario) => {
+    const accion = usuario.estado === 'activo' ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro de que quieres ${accion} este usuario?`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
+    }
+
+    try {
+      if (usuario.estado === 'activo') {
+        await desactivarUsuario(token, usuario.id);
+        toast.success({ text: 'Usuario desactivado exitosamente' });
+      } else {
+        await activarUsuario(token, usuario.id);
+        toast.success({ text: 'Usuario activado exitosamente' });
+      }
+
+      // Actualizar lista de usuarios
+      setUsuarios(usuarios.map(u =>
+        u.id === usuario.id
+          ? { ...u, estado: usuario.estado === 'activo' ? 'inactivo' : 'activo' as 'activo' | 'inactivo' }
+          : u
+      ));
+    } catch (error: any) {
+      toast.error({ text: `Error: ${error.message}` });
     }
   };
 
@@ -260,53 +315,16 @@ export function GestionUsuarios() {
         backgroundAttachment: 'fixed'
       }}
     >
-      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full mb-8">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-            </div>
-          </div>
-
-          {navItems.length > 0 ? (
-            <nav className="hidden md:flex items-center gap-8">
-              {navItems.map((label) => (
-                <a
-                  key={label}
-                  href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Usuarios' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-          ) : null}
-
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-              <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-            </div>
-
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {initials}
-            </div>
-
-            <button
-              onClick={() => {
-                setUser(null);
-                logoutUser(true);
-              }}
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
-              className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-            >
-              <LogOut />
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        user={user}
+        initials={initials}
+        navItems={navItems.map((label) => ({
+          label,
+          href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+        }))}
+        activeItem="Usuarios"
+        onLogout={() => setUser(null)}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -439,8 +457,12 @@ export function GestionUsuarios() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => eliminarUsuario(usuario.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={() => eliminarUsuario(usuario)}
+                          className={`p-2 rounded-lg transition-colors ${usuario.estado === 'activo'
+                            ? 'text-red-600 hover:bg-red-50'
+                            : 'text-green-600 hover:bg-green-50'
+                            }`}
+                          title={usuario.estado === 'activo' ? 'Desactivar usuario' : 'Activar usuario'}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

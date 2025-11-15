@@ -1,5 +1,6 @@
-import { AlertCircle, CheckCircle, Clock, File, FileText, Image, LogOut, Upload, Video, X } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, File, FileText, Image, Upload, Video, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Header } from '../Header';
 import { logoutUser } from "../../lib/auth";
 import { obtenerPlanesDocente, subirEvidencia, type PlanMejora, type PlanAccion } from "../../lib/evidencia.service";
 
@@ -131,53 +132,19 @@ export default function DashboardEvidencias() {
   if (loading) {
     return (
       <div className="h-screen flex flex-col">
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-              <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-              </div>
-            </div>
-
-            {navItems.length > 0 ? (
-              <nav className="hidden md:flex items-center gap-8">
-                {navItems.map((label) => (
-                  <a
-                    key={label}
-                    href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                    className={`text-sm font-medium cursor-pointer ${label === 'Evidencias' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                    {label}
-                  </a>
-                ))}
-              </nav>
-            ) : null}
-
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-                <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-              </div>
-
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {initials}
-              </div>
-
-              <button
-                onClick={() => {
-                  setUser(null);
-                  logoutUser(true);
-                }}
-                aria-label="Cerrar sesión"
-                title="Cerrar sesión"
-                className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-              >
-                <LogOut />
-              </button>
-            </div>
-          </div>
-        </header>
+        <Header
+          user={user}
+          initials={initials}
+          navItems={navItems.map((label) => ({
+            label,
+            href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+          }))}
+          activeItem="Evidencias"
+          onLogout={() => {
+            setUser(null);
+            logoutUser(true);
+          }}
+        />
 
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -192,53 +159,19 @@ export default function DashboardEvidencias() {
   if (!selectedPlan || planes.length === 0) {
     return (
       <div className="h-screen flex flex-col">
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-              <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-              </div>
-            </div>
-
-            {navItems.length > 0 ? (
-              <nav className="hidden md:flex items-center gap-8">
-                {navItems.map((label) => (
-                  <a
-                    key={label}
-                    href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                    className={`text-sm font-medium cursor-pointer ${label === 'Evidencias' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                    {label}
-                  </a>
-                ))}
-              </nav>
-            ) : null}
-
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-                <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-              </div>
-
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {initials}
-              </div>
-
-              <button
-                onClick={() => {
-                  setUser(null);
-                  logoutUser(true);
-                }}
-                aria-label="Cerrar sesión"
-                title="Cerrar sesión"
-                className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-              >
-                <LogOut />
-              </button>
-            </div>
-          </div>
-        </header>
+        <Header
+          user={user}
+          initials={initials}
+          navItems={navItems.map((label) => ({
+            label,
+            href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+          }))}
+          activeItem="Evidencias"
+          onLogout={() => {
+            setUser(null);
+            logoutUser(true);
+          }}
+        />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">
@@ -274,53 +207,19 @@ export default function DashboardEvidencias() {
   if (planData.estado !== 'aceptado_docente' && planData.estado !== 'en_progreso' && planData.estado !== 'aprobado' && planData.estado !== 'enejecucion') {
     return (
       <div className="h-screen flex flex-col">
-        <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-              <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-              </div>
-            </div>
-
-            {navItems.length > 0 ? (
-              <nav className="hidden md:flex items-center gap-8">
-                {navItems.map((label) => (
-                  <a
-                    key={label}
-                    href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                    className={`text-sm font-medium cursor-pointer ${label === 'Evidencias' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                    {label}
-                  </a>
-                ))}
-              </nav>
-            ) : null}
-
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-                <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-              </div>
-
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {initials}
-              </div>
-
-              <button
-                onClick={() => {
-                  setUser(null);
-                  logoutUser(true);
-                }}
-                aria-label="Cerrar sesión"
-                title="Cerrar sesión"
-                className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-              >
-                <LogOut />
-              </button>
-            </div>
-          </div>
-        </header>
+        <Header
+          user={user}
+          initials={initials}
+          navItems={navItems.map((label) => ({
+            label,
+            href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+          }))}
+          activeItem="Evidencias"
+          onLogout={() => {
+            setUser(null);
+            logoutUser(true);
+          }}
+        />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">
@@ -398,53 +297,19 @@ export default function DashboardEvidencias() {
 
   return (
     <div className="min-h-screen flex flex-col bg-linear-to-br from-blue-50 via-white to-purple-50">
-      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-            </div>
-          </div>
-
-          {navItems.length > 0 ? (
-            <nav className="hidden md:flex items-center gap-8">
-              {navItems.map((label) => (
-                <a
-                  key={label}
-                  href={label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Evidencias' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-          ) : null}
-
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-              <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-            </div>
-
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {initials}
-            </div>
-
-            <button
-              onClick={() => {
-                setUser(null);
-                logoutUser(true);
-              }}
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
-              className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-            >
-              <LogOut />
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        user={user}
+        initials={initials}
+        navItems={navItems.map((label) => ({
+          label,
+          href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+        }))}
+        activeItem="Evidencias"
+        onLogout={() => {
+          setUser(null);
+          logoutUser(true);
+        }}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Header */}
         <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">

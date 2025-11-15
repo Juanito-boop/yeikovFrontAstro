@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import { LogOut, Target, Plus, CheckCircle, Clock, AlertTriangle, TrendingUp, Award } from 'lucide-react';
+import { Target, Plus, CheckCircle, Clock, AlertTriangle, TrendingUp, Award } from 'lucide-react';
 import { logoutUser } from "../../lib/auth";
+import { Header } from '../Header';
 import { fetchIncidencias, createIncidencia, fetchDocentes, type Incidencia, type Docente } from "./request";
 import { toast } from "@pheralb/toast";
 
@@ -153,58 +154,19 @@ export default function EstrategiaDashboard() {
 
   return (
     <div className="h-screen flex flex-col items-center">
-      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-50 w-full">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/Logo-Usta.png" alt="Logo Usta" className="w-10 h-10" />
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">SGPM</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Gestión de Planes</p>
-            </div>
-          </div>
-
-          {navItems.length > 0 ? (
-            <nav className="hidden md:flex items-center gap-8">
-              <a
-                href="/dashboard"
-                className="text-sm font-medium cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                Dashboard
-              </a>
-              {navItems.map((label) => (
-                <a
-                  key={label}
-                  href={`/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-sm font-medium cursor-pointer ${label === 'Estrategia' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-          ) : null}
-
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl text-end font-bold text-slate-900 dark:text-white">{user?.nombre} {user?.apellido}</h1>
-              <p className="text-xs text-end text-slate-500 dark:text-slate-400">{user?.role} - {user?.facultad}</p>
-            </div>
-
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {initials}
-            </div>
-
-            <button
-              onClick={() => {
-                setUser(null);
-                logoutUser(true);
-              }}
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
-              className="size-10 bg-(--santoto-primary)/30 rounded-lg align-center justify-center text-white hover:bg-red-700 p-2 cursor-pointer"
-            >
-              <LogOut />
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        user={user}
+        initials={initials}
+        navItems={navItems.map((label) => ({
+          label,
+          href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
+        }))}
+        activeItem="Estrategia"
+        onLogout={() => {
+          setUser(null);
+          logoutUser(true);
+        }}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Header */}

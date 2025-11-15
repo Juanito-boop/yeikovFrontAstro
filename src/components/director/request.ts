@@ -162,6 +162,35 @@ export async function fetchAllPlans(token: string): Promise<Plan[]> {
   return result.planes || [];
 }
 
+export async function fetchPlanesRechazados(token: string): Promise<Plan[]> {
+  const response = await fetch(`${API_BASE_URL}/plans/rechazados`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch rejected plans");
+  }
+  const result = await response.json();
+  return result.planes || [];
+}
+
+export async function reenviarPlanADecano(token: string, planId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/plans/${planId}/reenviar-decano`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to resend plan to dean");
+  }
+}
+
 export async function fetchDocentes(token: string, schoolId?: string): Promise<Docente[]> {
   const url = schoolId
     ? `${API_BASE_URL}/docentes?schoolId=${schoolId}`

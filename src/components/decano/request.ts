@@ -100,6 +100,22 @@ export async function fetchDepartamentos(token: string): Promise<Departamento[]>
   return result.departamentos || [];
 }
 
+// Fetch planes pendientes de aprobación
+export async function fetchPlanesPendientes(token: string): Promise<Plan[]> {
+  const response = await fetch(`${API_BASE_URL}/decano/planes-pendientes`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  return result.planes || [];
+}
+
 // Fetch planes for decano review
 export async function fetchPlanesDecano(token: string): Promise<Plan[]> {
   const response = await fetch(`${API_BASE_URL}/plans/all`, {
@@ -132,9 +148,9 @@ export async function fetchDocentesFacultad(token: string): Promise<Docente[]> {
   return result.docentes || [];
 }
 
-// Aprobar plan
+// Aprobar plan por decano
 export async function aprobarPlan(token: string, planId: string, comentarios?: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/plans/${planId}/aprobar`, {
+  const response = await fetch(`${API_BASE_URL}/decano/planes/${planId}/aprobar`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -147,13 +163,14 @@ export async function aprobarPlan(token: string, planId: string, comentarios?: s
   });
 
   if (!response.ok) {
-    throw new Error(`Error ${response.status}: ${response.statusText}`);
+    const error = await response.json();
+    throw new Error(error.error || `Error ${response.status}: ${response.statusText}`);
   }
 }
 
-// Rechazar plan
+// Rechazar plan por decano
 export async function rechazarPlan(token: string, planId: string, comentarios: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/plans/${planId}/aprobar`, {
+  const response = await fetch(`${API_BASE_URL}/decano/planes/${planId}/aprobar`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -166,6 +183,7 @@ export async function rechazarPlan(token: string, planId: string, comentarios: s
   });
 
   if (!response.ok) {
-    throw new Error(`Error ${response.status}: ${response.statusText}`);
+    const error = await response.json();
+    throw new Error(error.error || `Error ${response.status}: ${response.statusText}`);
   }
 }
