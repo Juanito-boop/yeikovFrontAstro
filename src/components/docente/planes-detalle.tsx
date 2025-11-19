@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
-import { FileText, ArrowLeft } from "lucide-react";
+import { FileText, ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { Header } from '../Header';
 import type { Plan } from './request';
+import { toast } from '@pheralb/toast';
 
 interface UserAuth {
   id: string;
@@ -27,6 +28,10 @@ interface PlanDetalleProps {
 
 export default function PlanDetalle({ plan }: PlanDetalleProps) {
   const [user, setUser] = useState<UserAuth | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [comentario, setComentario] = useState('');
+  const [showDecisionModal, setShowDecisionModal] = useState(false);
+  const [decision, setDecision] = useState<'aceptar' | 'rechazar' | null>(null);
   const navItems = user ? NAV_ITEMS[user.role as Role] ?? [] : [];
 
   useEffect(() => {
@@ -42,6 +47,60 @@ export default function PlanDetalle({ plan }: PlanDetalleProps) {
     const a = (user.apellido || "").trim();
     return `${n[0] || ""}${a[0] || ""}`.toUpperCase();
   }, [user]);
+
+  const handleDecision = async () => {
+    if (!decision) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No hay sesión activa' });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`http://localhost:3000/api/plans/${plan.id}/aprobar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          aprobado: decision === 'aceptar',
+          comentarios: comentario.trim() || undefined
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al procesar decisión');
+      }
+
+      toast.success({
+        text: decision === 'aceptar'
+          ? 'Plan aceptado exitosamente'
+          : 'Plan rechazado'
+      });
+
+      // Redirect back to plans list
+      setTimeout(() => {
+        window.location.href = '/dashboard/mis-planes';
+      }, 1500);
+    } catch (error: any) {
+      toast.error({ text: error.message });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const canMakeDecision =
+    plan.estado === 'pendiente' ||
+    plan.estado === 'asignado' ||
+    plan.estado === 'Abierto' ||
+    plan.estado === 'Borrador' ||
+    plan.estado === 'borrador' ||
+    plan.estado.toLowerCase() === 'pendiente' ||
+    plan.estado.toLowerCase() === 'asignado';
 
   return (
     <div
@@ -94,7 +153,7 @@ export default function PlanDetalle({ plan }: PlanDetalleProps) {
 
             <div className="p-4 bg-white/40 rounded-xl border border-white/30">
               <h3 className="text-sm font-semibold text-slate-800 mb-1">Fecha de Creación</h3>
-              <p className="text-slate-900">{new Date(plan.fechaCreacion).toLocaleDateString('es-ES')}</p>
+              <p className="text-slate-900">{new Date(plan.createdAt).toLocaleDateString('es-ES')}</p>
             </div>
 
             <div className="p-4 bg-white/40 rounded-xl border border-white/30">
@@ -120,8 +179,87 @@ export default function PlanDetalle({ plan }: PlanDetalleProps) {
               </div>
             )}
           </div>
+
+          {/* Accept/Reject Buttons */}
+          {canMakeDecision && (
+            <div className="mt-6 border-t border-white/30 pt-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Decisión sobre el Plan</h3>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setDecision('aceptar');
+                    setShowDecisionModal(true);
+                  }}
+                  disabled={isProcessing}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Aceptar Plan</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setDecision('rechazar');
+                    setShowDecisionModal(true);
+                  }}
+                  disabled={isProcessing}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <XCircle className="w-5 h-5" />
+                  <span>Rechazar Plan</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Decision Modal */}
+      {showDecisionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="backdrop-blur-md bg-white/90 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">
+              {decision === 'aceptar' ? 'Aceptar Plan' : 'Rechazar Plan'}
+            </h2>
+            <p className="text-slate-600 mb-4">
+              {decision === 'aceptar'
+                ? 'Al aceptar este plan, te comprometes a trabajar en su ejecución.'
+                : 'Por favor, explica el motivo del rechazo del plan.'}
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Comentario {decision === 'rechazar' && <span className="text-red-500">*</span>}
+              </label>
+              <textarea
+                value={comentario}
+                onChange={(e) => setComentario(e.target.value)}
+                placeholder={decision === 'aceptar' ? 'Comentario opcional...' : 'Explica el motivo del rechazo...'}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDecisionModal(false);
+                  setComentario('');
+                  setDecision(null);
+                }}
+                disabled={isProcessing}
+                className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDecision}
+                disabled={isProcessing || (decision === 'rechazar' && !comentario.trim())}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? 'Procesando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

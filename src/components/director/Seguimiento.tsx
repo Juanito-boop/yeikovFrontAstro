@@ -25,7 +25,7 @@ const NAV_ITEMS: Record<Role, string[]> = {
   Administrador: ['Usuarios', 'Facultades', 'Reportes'],
 };
 
-const estados = ['todos', 'Abierto', 'En Progreso', 'Cerrado', 'Completado', 'Aprobado'];
+const estados = ['todos', 'Abierto', 'En Progreso', 'Cerrado', 'Completado', 'Aprobado', 'pendiente', 'asignado', 'aceptado_docente', 'en_progreso', 'completado'];
 
 export default function SeguimientoDashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -48,8 +48,11 @@ export default function SeguimientoDashboard() {
   // Filtrar planes según los filtros seleccionados
   const planesFiltrados = planesSafe.filter(plan => {
     const matchFacultad = filtroFacultad === 'todas' || plan.docente.school?.nombre === filtroFacultad;
-    const matchEstado = filtroEstado === 'todos' || plan.estado === filtroEstado;
-    return matchFacultad && matchEstado;
+    const estadoNormalizado = plan.estado.toLowerCase().replace(/\s+/g, '_');
+    const filtroNormalizado = filtroEstado.toLowerCase().replace(/\s+/g, '_');
+    const matchEstado = filtroEstado === 'todos' ||
+      estadoNormalizado === filtroNormalizado ||
+      plan.estado === filtroEstado; \n    return matchFacultad && matchEstado; \n
   });
 
   useEffect(() => {

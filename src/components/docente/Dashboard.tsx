@@ -21,27 +21,48 @@ export default function DashboardDocente() {
         toast.error({ text: 'Error al cargar planes: ' + err.message });
         setIsLoading(false);
       });
+
   }, []);
 
   // Calcular estadísticas desde los planes reales
   const planesAsignados = planes.length;
-  const planesCompletados = planes.filter(p => p.estado.toLowerCase().includes('completado') || p.estado.toLowerCase().includes('cerrado')).length;
-  const planesEnProgreso = planes.filter(p => p.estado.toLowerCase().includes('progreso') || p.estado.toLowerCase().includes('abierto')).length;
+  
+  const planesCompletados = planes.filter(p => {
+    const estado = p.estado.toLowerCase().replace(/\s+/g, '');
+    return estado.includes('completado') || estado.includes('cerrado');
+  }).length;
+
+  const planesEnProgreso = planes.filter(p => {
+    const estado = p.estado.toLowerCase().replace(/\s+/g, '');
+    return estado === 'enprogreso' || estado.includes('progreso') || estado === 'abierto';
+  }).length;
+
+  const planesPendientes = planes.filter(p => {
+    const estado = p.estado.toLowerCase().replace(/\s+/g, '');
+    return estado === 'pendiente' || estado === 'activo' || estado === 'borrador';
+  }).length;
+
+  // Debug logs
+  console.log('Planes totales:', planes);
+  console.log('Planes Completados:', planesCompletados, 'En Progreso:', planesEnProgreso, 'Pendientes:', planesPendientes);
+
   const evidenciasSubidas = 0; // Esto requeriría otro endpoint
 
   const stats = [
-    { label: 'Planes Asignados', value: planesAsignados.toString(), icon: FileText, color: 'santoto' },
-    { label: 'Evidencias Subidas', value: evidenciasSubidas.toString(), icon: Upload, color: 'green' },
-    { label: 'En Progreso', value: planesEnProgreso.toString(), icon: Clock, color: 'yellow' },
-    { label: 'Completados', value: planesCompletados.toString(), icon: CheckCircle, color: 'emerald' },
+    { label: 'Completados', value: planesCompletados, icon: CheckCircle, color: 'green' },
+    { label: 'En Progreso', value: planesEnProgreso, icon: Clock, color: 'blue' },
+    { label: 'Pendientes', value: planesPendientes, icon: FileText, color: 'yellow' },
+    { label: 'Planes Asignados', value: planesAsignados, icon: Award, color: 'santoto' },
   ];
+
+  console.log('Stats antes de renderizar:', stats);
 
   const upcomingDeadlines = planes
     .filter(p => p.estado.toLowerCase().includes('abierto') || p.estado.toLowerCase().includes('progreso'))
     .slice(0, 3)
     .map(plan => ({
       subject: plan.titulo,
-      deadline: new Date(plan.fechaCreacion).toLocaleDateString('es-ES', {
+      deadline: new Date(plan.createdAt).toLocaleDateString('es-ES', {
         year: 'numeric', month: 'short', day: 'numeric'
       }),
       status: 'normal' as 'normal' | 'urgent'
@@ -77,6 +98,8 @@ export default function DashboardDocente() {
             green: 'from-emerald-600 to-emerald-700',
             purple: 'from-purple-600 to-purple-700',
             yellow: 'from-amber-600 to-amber-700',
+            santoto: 'from-indigo-600 to-indigo-700',
+            emerald: 'from-emerald-600 to-emerald-700',
           };
 
           return (

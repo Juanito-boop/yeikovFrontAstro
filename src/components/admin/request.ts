@@ -28,6 +28,7 @@ export interface Facultad {
   decano?: string | null;
   emailDecano?: string | null;
   cantidadDocentes?: number;
+  departamentos?: string[];
 }
 
 export interface Plan {
@@ -225,6 +226,7 @@ export async function crearFacultad(token: string, data: {
   nombre: string;
   decano?: string;
   emailDecano?: string;
+  departamentos?: string[];
 }): Promise<Facultad> {
   const response = await fetch(`${API_BASE_URL}/schools`, {
     method: 'POST',
@@ -248,6 +250,7 @@ export async function actualizarFacultad(token: string, id: string, data: {
   nombre: string;
   decano?: string;
   emailDecano?: string;
+  departamentos?: string[];
 }): Promise<Facultad> {
   const response = await fetch(`${API_BASE_URL}/schools/${id}`, {
     method: 'PUT',

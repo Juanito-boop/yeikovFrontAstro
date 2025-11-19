@@ -69,7 +69,7 @@ export function GestionFacultades() {
           nombre: f.nombre,
           decano: f.decano || 'No asignado',
           emailDecano: f.emailDecano || 'No asignado',
-          departamentos: [],
+          departamentos: f.departamentos || [],
           totalDocentes: f.cantidadDocentes || 0,
           planesActivos: 0,
           fechaCreacion: new Date().toLocaleDateString('es-ES'),
@@ -127,7 +127,8 @@ export function GestionFacultades() {
         const facultadActualizada = await actualizarFacultad(token, facultadEditando, {
           nombre: formData.nombre,
           decano: formData.decano || undefined,
-          emailDecano: formData.emailDecano || undefined
+          emailDecano: formData.emailDecano || undefined,
+          departamentos: departamentosFiltrados
         });
 
         setFacultades(facultades.map(f => f.id === facultadEditando ? {
@@ -135,7 +136,7 @@ export function GestionFacultades() {
           nombre: facultadActualizada.nombre,
           decano: facultadActualizada.decano || 'No asignado',
           emailDecano: facultadActualizada.emailDecano || 'No asignado',
-          departamentos: departamentosFiltrados,
+          departamentos: facultadActualizada.departamentos || departamentosFiltrados,
           estado: formData.estado
         } : f));
         toast.success({ text: 'Facultad actualizada exitosamente' });
@@ -144,7 +145,8 @@ export function GestionFacultades() {
         const nuevaFacultad = await crearFacultad(token, {
           nombre: formData.nombre,
           decano: formData.decano || undefined,
-          emailDecano: formData.emailDecano || undefined
+          emailDecano: formData.emailDecano || undefined,
+          departamentos: departamentosFiltrados
         });
 
         const mapped: Facultad = {
@@ -152,7 +154,7 @@ export function GestionFacultades() {
           nombre: nuevaFacultad.nombre,
           decano: nuevaFacultad.decano || 'No asignado',
           emailDecano: nuevaFacultad.emailDecano || 'No asignado',
-          departamentos: departamentosFiltrados,
+          departamentos: nuevaFacultad.departamentos || departamentosFiltrados,
           totalDocentes: nuevaFacultad.cantidadDocentes || 0,
           planesActivos: 0,
           fechaCreacion: new Date().toLocaleDateString('es-ES'),

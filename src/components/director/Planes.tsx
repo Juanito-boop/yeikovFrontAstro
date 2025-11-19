@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { FileText, Plus, Save, X, ListTodo } from 'lucide-react';
+import { FileText, Plus, Save, X, ListTodo, Eye, Edit3, Trash2 } from 'lucide-react';
 import { logoutUser } from "../../lib/auth";
 import { Header } from '../Header';
 import { fetchDocentes, createPlan, fetchAllPlans, type Docente, type Plan } from "./request";
@@ -27,11 +27,21 @@ interface AccionTemp {
   fechaObjetivo: string;
 }
 
+interface Incidencia {
+  id: string;
+  descripcion: string;
+  estado: string;
+}
+
 export default function Planes() {
   const [user, setUser] = useState<User | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarVerModal, setMostrarVerModal] = useState(false);
+  const [planSeleccionado, setPlanSeleccionado] = useState<Plan | null>(null);
+  const [editandoPlanId, setEditandoPlanId] = useState<string | null>(null);
   const [docentes, setDocentes] = useState<Docente[]>([]);
   const [planes, setPlanes] = useState<Plan[]>([]);
+  const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     docenteId: '',
@@ -62,11 +72,15 @@ export default function Planes() {
 
     Promise.all([
       fetchDocentes(token),
-      fetchAllPlans(token)
+      fetchAllPlans(token),
+      fetch('http://localhost:3000/api/incidencias', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(res => res.json())
     ])
-      .then(([docentesData, planesData]) => {
+      .then(([docentesData, planesData, incidenciasData]) => {
         setDocentes(docentesData);
         setPlanes(planesData);
+        setIncidencias(incidenciasData.incidencias || []);
       })
       .catch(err => toast.error({ text: 'Error al cargar datos: ' + err.message }));
   }, []);
@@ -92,6 +106,33 @@ export default function Planes() {
 
     setIsLoading(true);
     try {
+      if (editandoPlanId) {
+        // Actualizar plan existente
+        const response = await fetch(`http://localhost:3000/api/planes/${editandoPlanId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            titulo: formData.titulo,
+            descripcion: formData.descripcion,
+            incidenciaId: formData.incidenciaId || undefined
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error al actualizar plan');
+        }
+
+        toast.success({ text: 'Plan actualizado exitosamente' });
+        const updated = await fetchAllPlans(token);
+        setPlanes(updated);
+        resetForm();
+        setIsLoading(false);
+        return;
+      }
       console.log('Creando plan con datos:', {
         titulo: formData.titulo,
         descripcion: formData.descripcion,
@@ -178,6 +219,7 @@ export default function Planes() {
     setAcciones([]);
     setNuevaAccion({ descripcion: '', fechaObjetivo: '' });
     setMostrarModal(false);
+    setEditandoPlanId(null);
   };
 
   const agregarAccion = () => {
@@ -193,6 +235,50 @@ export default function Planes() {
 
   const eliminarAccion = (id: string) => {
     setAcciones(acciones.filter(a => a.id !== id));
+  };
+
+  const editarPlan = (plan: Plan) => {
+    setEditandoPlanId(plan.id);
+    setFormData({
+      docenteId: plan.docente.id,
+      titulo: plan.titulo,
+      descripcion: plan.descripcion,
+      incidenciaId: plan.incidencia?.id || ''
+    });
+    setMostrarModal(true);
+  };
+
+  const eliminarPlan = async (planId: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este plan?')) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error({ text: 'No autenticado' });
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/planes/${planId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al eliminar plan');
+      }
+
+      toast.success({ text: 'Plan eliminado exitosamente' });
+      const updated = await fetchAllPlans(token);
+      setPlanes(updated);
+    } catch (error: any) {
+      toast.error({ text: 'Error: ' + error.message });
+    }
+  };
+
+  const verPlan = (plan: Plan) => {
+    setPlanSeleccionado(plan);
+    setMostrarVerModal(true);
   };
 
   const getEstadoColor = (estado: string) => {
@@ -254,20 +340,28 @@ export default function Planes() {
           ) : (
             <div className="space-y-4">
               {planes.map(plan => (
-                <div key={plan.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                <div key={plan.id} className="flex items-center justify-between p-4 bg-white border-2 border-slate-200 rounded-xl hover:shadow-md transition-all">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
                       <FileText className="w-6 h-6 text-white" />
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-slate-900">{plan.titulo}</h3>
-                      <p className="text-sm text-slate-600">{plan.docente.nombre} {plan.docente.apellido}</p>
-                      <p className="text-xs text-slate-500">{plan.descripcion.substring(0, 60)}...</p>
+                      <p className="text-sm text-slate-700 font-medium">{plan.docente.nombre} {plan.docente.apellido}</p>
+                      <p className="text-xs text-slate-600">{plan.descripcion.substring(0, 60)}...</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(plan.estado)}`}>{plan.estado}</span>
-                    <span className="text-xs text-slate-500">{formatDate(plan.createdAt || plan.fechaCreacion)}</span>
+                    <button onClick={() => verPlan(plan)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Ver">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => editarPlan(plan)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Editar">
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => eliminarPlan(plan.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -275,11 +369,52 @@ export default function Planes() {
           )}
         </div>
 
+        {/* View Modal */}
+        {mostrarVerModal && planSeleccionado && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => e.target === e.currentTarget && setMostrarVerModal(false)}>
+            <div className="bg-white rounded-2xl p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-900">Detalles del Plan</h2>
+                <button onClick={() => setMostrarVerModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Título</label>
+                  <p className="text-slate-900 font-medium">{planSeleccionado.titulo}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Docente</label>
+                  <p className="text-slate-900">{planSeleccionado.docente.nombre} {planSeleccionado.docente.apellido}</p>
+                  <p className="text-sm text-slate-600">{planSeleccionado.docente.email}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+                  <p className="text-slate-900">{planSeleccionado.descripcion}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(planSeleccionado.estado)}`}>
+                      {planSeleccionado.estado}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Fecha de Creación</label>
+                    <p className="text-slate-900">{formatDate(planSeleccionado.createdAt || planSeleccionado.fechaCreacion)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {mostrarModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => e.target === e.currentTarget && resetForm()}>
             <div className="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900">Nuevo Plan de Mejoramiento</h2>
+                <h2 className="text-2xl font-bold text-slate-900">{editandoPlanId ? 'Editar Plan de Mejoramiento' : 'Nuevo Plan de Mejoramiento'}</h2>
                 <button onClick={resetForm} disabled={isLoading} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg disabled:opacity-50">
                   <X className="w-6 h-6" />
                 </button>
@@ -330,15 +465,20 @@ export default function Planes() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">ID de Incidencia (Opcional)</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Incidencia (Opcional)</label>
+                  <select
                     value={formData.incidenciaId}
                     onChange={(e) => setFormData({ ...formData, incidenciaId: e.target.value })}
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500"
-                    placeholder="ID de incidencia"
                     disabled={isLoading}
-                  />
+                  >
+                    <option value="">Sin incidencia asociada</option>
+                    {incidencias.map(inc => (
+                      <option key={inc.id} value={inc.id}>
+                        {inc.descripcion} - {inc.estado}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Sección de Acciones */}
@@ -410,7 +550,7 @@ export default function Planes() {
                   </button>
                   <button type="submit" disabled={isLoading} className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 flex items-center justify-center space-x-2 disabled:opacity-50">
                     <Save className="w-5 h-5" />
-                    <span>{isLoading ? 'Creando...' : 'Asignar Plan'}</span>
+                    <span>{isLoading ? (editandoPlanId ? 'Actualizando...' : 'Creando...') : (editandoPlanId ? 'Actualizar Plan' : 'Asignar Plan')}</span>
                   </button>
                 </div>
               </form>

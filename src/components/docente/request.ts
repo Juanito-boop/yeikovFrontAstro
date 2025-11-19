@@ -5,11 +5,39 @@ export interface Plan {
   titulo: string;
   descripcion: string;
   estado: string;
-  fechaCreacion: string;
+  createdAt: string;
+  updatedAt: string;
   fechaAprobacion?: string;
+  acciones: Array<{
+    id: string;
+    descripcion: string;
+    fecha: string;
+  }>;
+  aprobaciones: Array<{
+    id: string;
+    nivel: string;
+    aprobado: boolean;
+    comentarios?: string | null;
+    fecha: string;
+  }>;
   docente: {
     id: string;
+    email: string;
     nombre: string;
+    password: string;
+    roleId: string;
+    schoolId: string;
+    activo: boolean;
+    createdAt: string;
+    updatedAt: string;
+    school: {
+      id: string;
+      nombre: string;
+      direccion: string;
+      decano?: string | null;
+      emailDecano?: string | null;
+      departamentos?: string | null;
+    };
     apellido: string;
   };
 }

@@ -2,15 +2,11 @@ import { useEffect, useState } from "react"
 import { fetchDirectorCounts, type DirectorCountsRequest } from "./request";
 import { Award, BarChart3, Building2, Calendar, FileText, Target, Users } from "lucide-react";
 import { toast } from "@pheralb/toast";
-import { Header } from '../Header';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [counts, setCounts] = useState<DirectorCountsRequest | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-
-  const navItems = ['Dashboard', 'Asignar Planes', 'Seguimiento', 'Métricas', 'Estrategia'];
-  const initials = user ? `${user.nombre?.[0] || ''}${user.apellido?.[0] || ''}`.toUpperCase() : '';
 
   // Calcular índice de calidad: planes completados / total de planes
   const totalCompletados = counts?.planesPorEscuela.reduce((acc, esc) => acc + esc.planesCompletados, 0) || 0;
@@ -82,16 +78,6 @@ export default function Dashboard() {
 
   return (
     <>
-      <Header
-        user={user}
-        initials={initials}
-        navItems={navItems.map((label) => ({
-          label,
-          href: label === 'Dashboard' ? '/dashboard' : `/dashboard/${label.toLowerCase().replace(/\s+/g, '-')}`
-        }))}
-        activeItem="Dashboard"
-        onLogout={() => setUser(null)}
-      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 backdrop-blur-md bg-white/30 rounded-2xl p-6 shadow-lg border-2 border-white/40">
           <h1 className="text-3xl font-bold text-(--santoto-primary) mb-2 drop-shadow-md">

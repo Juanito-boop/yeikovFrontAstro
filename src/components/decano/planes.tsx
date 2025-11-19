@@ -94,9 +94,15 @@ export function PlanesRevision() {
     return result || '';
   }, [user]);
 
-  const planesFiltrados = planes.filter(plan =>
-    filtroEstado === 'todos' || plan.estado === filtroEstado
-  );
+  const planesFiltrados = planes.filter(plan => {
+    if (filtroEstado === 'todos') return true;
+    const estadoNormalizado = plan.estado.toLowerCase().replace(/\s+/g, '_');
+    const filtroNormalizado = filtroEstado.toLowerCase().replace(/\s+/g, '_');
+    return estadoNormalizado === filtroNormalizado ||
+      (filtroNormalizado === 'por_revision' && estadoNormalizado === 'pendiente_decano') ||
+      (filtroNormalizado === 'aprobado' && estadoNormalizado === 'aprobado_decano') ||
+      (filtroNormalizado === 'rechazado' && estadoNormalizado === 'rechazado_decano'); \n
+  });
 
   const handleDecision = async () => {
     if (!selectedPlan || !decision) return;
@@ -134,12 +140,22 @@ export function PlanesRevision() {
 
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'pendiente_decano': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'aprobado_decano': return 'bg-green-100 text-green-700 border-green-200';
-      case 'rechazado_decano': return 'bg-red-100 text-red-700 border-red-200';
-      case 'modificado_decano': return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    const estadoNormalizado = estado.toLowerCase().replace(/\s+/g, '_');
+    switch (estadoNormalizado) {
+      case 'por_revision':
+      case 'pendiente_decano':
+      case 'pendiente':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'aprobado':
+      case 'aprobado_decano':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'rechazado':
+      case 'rechazado_decano':
+        return 'bg-red-100 text-red-700 border-red-200';
+      case 'modificado_decano':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
@@ -177,7 +193,7 @@ export function PlanesRevision() {
         {/* Filtros */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-2">
-            {['todos', 'pendiente_decano', 'aprobado_decano', 'rechazado_decano', 'modificado_decano'].map((estado) => (
+            {['todos', 'por_revision', 'aprobado', 'rechazado'].map((estado) => (
               <button
                 key={estado}
                 onClick={() => setFiltroEstado(estado)}
@@ -186,7 +202,10 @@ export function PlanesRevision() {
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
               >
-                {estado === 'todos' ? 'Todos' : estado.replace('_', ' ').replace('decano', '').trim().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                {estado === 'todos' ? 'Todos' :
+                  estado === 'por_revision' ? 'Por Revisión' :
+                    estado === 'aprobado' ? 'Aprobado' :
+                      estado === 'rechazado' ? 'Rechazado' : estado}
               </button>
             ))}
           </div>
