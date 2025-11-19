@@ -84,7 +84,7 @@ export default function DashboardPlanes() {
 
   // Estadísticas
   const planesCompletados = planes.filter(p => p.estado === 'completado').length;
-  const planesEnProgreso = planes.filter(p => p.estado === 'en_progreso').length;
+  const planesEnProgreso = planes.filter(p => p.estado === 'EnProgreso').length;
   const planesPendientes = planes.filter(p => p.estado === 'pendiente').length;
 
   // Función para obtener color según estado
@@ -92,7 +92,7 @@ export default function DashboardPlanes() {
     switch (estado.toLowerCase()) {
       case 'completado':
         return 'text-green-600 bg-green-50 border-green-200';
-      case 'en_progreso':
+      case 'EnProgreso':
         return 'text-blue-600 bg-blue-50 border-blue-200';
       case 'pendiente':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
@@ -235,7 +235,7 @@ export default function DashboardPlanes() {
                       <div className="flex items-center gap-4 text-sm text-slate-500">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          <span>Creado: {new Date(plan.fechaCreacion).toLocaleDateString('es-ES')}</span>
+                          <span>Creado: {new Date(plan.createdAt).toLocaleDateString('es-ES')}</span>
                         </div>
                       </div>
                     </div>

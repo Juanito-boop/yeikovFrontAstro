@@ -116,9 +116,9 @@ export async function fetchPlanesPendientes(token: string): Promise<Plan[]> {
   return result.planes || [];
 }
 
-// Fetch planes for decano review
+// Fetch planes for decano review (filtered by faculty)
 export async function fetchPlanesDecano(token: string): Promise<Plan[]> {
-  const response = await fetch(`${API_BASE_URL}/plans/all`, {
+  const response = await fetch(`${API_BASE_URL}/decano/planes`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -134,7 +134,7 @@ export async function fetchPlanesDecano(token: string): Promise<Plan[]> {
 
 // Fetch docentes de la facultad
 export async function fetchDocentesFacultad(token: string): Promise<Docente[]> {
-  const response = await fetch(`${API_BASE_URL}/docentes`, {
+  const response = await fetch(`${API_BASE_URL}/decano/docentes`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

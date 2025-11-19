@@ -19,10 +19,10 @@ interface User {
 type Role = 'Director' | 'Docente' | 'Decano' | 'Administrador';
 
 const NAV_ITEMS: Record<Role, string[]> = {
-  Director: ['Asignar Planes', 'Seguimiento', 'Métricas', 'Estrategia'],
-  Docente: ['Mis Planes', 'Evidencias'],
-  Decano: ['Revisar Planes', 'Docentes', 'Reportes'],
-  Administrador: ['Usuarios', 'Facultades', 'Reportes'],
+  Director: ['Dashboard', 'Asignar Planes', 'Seguimiento', 'Métricas', 'Estrategia'],
+  Docente: ['Dashboard', 'Mis Planes', 'Evidencias'],
+  Decano: ['Dashboard', 'Revisar Planes', 'Docentes', 'Reportes'],
+  Administrador: ['Dashboard', 'Usuarios', 'Facultades', 'Reportes'],
 };
 
 const estados = ['todos', 'Abierto', 'En Progreso', 'Cerrado', 'Completado', 'Aprobado', 'pendiente', 'asignado', 'aceptado_docente', 'en_progreso', 'completado'];
@@ -52,7 +52,8 @@ export default function SeguimientoDashboard() {
     const filtroNormalizado = filtroEstado.toLowerCase().replace(/\s+/g, '_');
     const matchEstado = filtroEstado === 'todos' ||
       estadoNormalizado === filtroNormalizado ||
-      plan.estado === filtroEstado; \n    return matchFacultad && matchEstado; \n
+      plan.estado === filtroEstado;
+    return matchFacultad && matchEstado;
   });
 
   useEffect(() => {
@@ -263,7 +264,7 @@ export default function SeguimientoDashboard() {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-sm text-slate-600">
-                            {new Date(plan.fechaCreacion).toLocaleDateString('es-ES', {
+                            {new Date(plan.createdAt).toLocaleDateString('es-ES', {
                               year: 'numeric', month: 'short', day: 'numeric'
                             })}
                           </td>

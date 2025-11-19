@@ -60,7 +60,7 @@ export interface Evidencia {
 
 // Obtener planes del docente autenticado
 export async function fetchMyPlans(token: string): Promise<Plan[]> {
-  const response = await fetch(`${API_BASE_URL}/plans`, {
+  const response = await fetch(`${API_BASE_URL}/plans/mis-planes`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

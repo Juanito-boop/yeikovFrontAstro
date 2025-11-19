@@ -199,12 +199,13 @@ export default function DashboardEvidencias() {
     id: selectedPlan.id,
     espacioAcademico: selectedPlan.titulo,
     motivo: selectedPlan.descripcion,
-    estado: selectedPlan.estado.toLowerCase().replace(/\s+/g, '_'),
+    estado: selectedPlan.estado,
     progreso: selectedPlan.progreso || 0,
     fechaLimite: selectedPlan.fechaLimite || 'Sin fecha límite'
   };
 
-  if (planData.estado !== 'aceptado_docente' && planData.estado !== 'en_progreso' && planData.estado !== 'aprobado' && planData.estado !== 'enejecucion') {
+  // El docente puede subir evidencias cuando el plan está Activo o EnProgreso
+  if (planData.estado !== 'Activo' && planData.estado !== 'EnProgreso') {
     return (
       <div className="h-screen flex flex-col">
         <Header
@@ -232,10 +233,19 @@ export default function DashboardEvidencias() {
               <AlertCircle className="w-8 h-8 text-(--santoto-accent)" />
             </div>
             <h3 className="text-lg font-medium text-(--santoto-primary) mb-2">
-              Plan Pendiente de Aceptación
+              {planData.estado === 'PendienteDecano' && 'Plan Pendiente de Aprobación del Decano'}
+              {planData.estado === 'RechazadoDecano' && 'Plan Rechazado por el Decano'}
+              {planData.estado === 'RechazadoDocente' && 'Plan Rechazado'}
+              {planData.estado === 'Cerrado' && 'Plan Cerrado'}
+              {planData.estado === 'Completado' && 'Plan Completado'}
+              {!['PendienteDecano', 'RechazadoDecano', 'RechazadoDocente', 'Cerrado', 'Completado'].includes(planData.estado) && 'Plan no disponible'}
             </h3>
             <p className="text-slate-800 font-medium">
-              Debes aceptar el plan de mejoramiento antes de poder subir evidencias.
+              {planData.estado === 'PendienteDecano' && 'El plan está pendiente de aprobación por parte del decano. Una vez aprobado, podrás subir evidencias.'}
+              {planData.estado === 'RechazadoDecano' && 'El plan fue rechazado por el decano. Contacta con tu director.'}
+              {planData.estado === 'RechazadoDocente' && 'Has rechazado este plan. Contacta con tu director si necesitas ayuda.'}
+              {(planData.estado === 'Cerrado' || planData.estado === 'Completado') && 'Este plan ya ha sido completado y cerrado. No se pueden subir más evidencias.'}
+              {!['PendienteDecano', 'RechazadoDecano', 'RechazadoDocente', 'Cerrado', 'Completado'].includes(planData.estado) && 'Este plan no está en un estado que permita subir evidencias.'}
             </p>
           </div>
         </div>
@@ -296,7 +306,7 @@ export default function DashboardEvidencias() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-linear-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen flex flex-col ">
       <Header
         user={user}
         initials={initials}

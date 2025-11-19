@@ -15,10 +15,10 @@ interface User {
 }
 
 const NAV_ITEMS = {
-  Director: ['Asignar Planes', 'Seguimiento', 'Métricas', 'Estrategia'],
-  Docente: ['Mis Planes', 'Evidencias'],
-  Decano: ['Revisar Planes', 'Docentes', 'Reportes'],
-  Administrador: ['Usuarios', 'Facultades', 'Reportes'],
+  Director: ['Dashboard', 'Asignar Planes', 'Seguimiento', 'Métricas', 'Estrategia'],
+  Docente: ['Dashboard', 'Mis Planes', 'Evidencias'],
+  Decano: ['Dashboard', 'Revisar Planes', 'Docentes', 'Reportes'],
+  Administrador: ['Dashboard', 'Usuarios', 'Facultades', 'Reportes'],
 };
 
 interface AccionTemp {
@@ -78,11 +78,25 @@ export default function Planes() {
       }).then(res => res.json())
     ])
       .then(([docentesData, planesData, incidenciasData]) => {
-        setDocentes(docentesData);
-        setPlanes(planesData);
-        setIncidencias(incidenciasData.incidencias || []);
+        setDocentes(docentesData || []);
+        setPlanes(planesData || []);
+        // Filtrar incidencias válidas con id
+        const incidenciasArray = incidenciasData?.incidencias || [];
+        const incidenciasValidas = Array.isArray(incidenciasArray)
+          ? incidenciasArray.filter(
+            (inc: any) => inc != null && typeof inc === 'object' && inc.id && inc.descripcion
+          )
+          : [];
+        setIncidencias(incidenciasValidas);
       })
-      .catch(err => toast.error({ text: 'Error al cargar datos: ' + err.message }));
+      .catch(err => {
+        console.error('Error al cargar datos:', err);
+        toast.error({ text: 'Error al cargar datos: ' + err.message });
+        // Asegurar que los estados no queden undefined
+        setDocentes([]);
+        setPlanes([]);
+        setIncidencias([]);
+      });
   }, []);
 
   const initials = useMemo(() => {
@@ -108,7 +122,7 @@ export default function Planes() {
     try {
       if (editandoPlanId) {
         // Actualizar plan existente
-        const response = await fetch(`http://localhost:3000/api/planes/${editandoPlanId}`, {
+        const response = await fetch(`http://localhost:3000/api/plans/${editandoPlanId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -238,12 +252,17 @@ export default function Planes() {
   };
 
   const editarPlan = (plan: Plan) => {
+    if (!plan.docente) {
+      toast.error({ text: 'Error: Plan sin docente asignado' });
+      return;
+    }
+
     setEditandoPlanId(plan.id);
     setFormData({
       docenteId: plan.docente.id,
       titulo: plan.titulo,
       descripcion: plan.descripcion,
-      incidenciaId: plan.incidencia?.id || ''
+      incidenciaId: (plan.incidencia && plan.incidencia.id) ? plan.incidencia.id : ''
     });
     setMostrarModal(true);
   };
@@ -258,7 +277,7 @@ export default function Planes() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/planes/${planId}`, {
+      const response = await fetch(`http://localhost:3000/api/plans/${planId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -347,7 +366,9 @@ export default function Planes() {
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-slate-900">{plan.titulo}</h3>
-                      <p className="text-sm text-slate-700 font-medium">{plan.docente.nombre} {plan.docente.apellido}</p>
+                      <p className="text-sm text-slate-700 font-medium">
+                        {plan.docente ? `${plan.docente.nombre} ${plan.docente.apellido}` : 'Sin docente asignado'}
+                      </p>
                       <p className="text-xs text-slate-600">{plan.descripcion.substring(0, 60)}...</p>
                     </div>
                   </div>
@@ -386,8 +407,14 @@ export default function Planes() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Docente</label>
-                  <p className="text-slate-900">{planSeleccionado.docente.nombre} {planSeleccionado.docente.apellido}</p>
-                  <p className="text-sm text-slate-600">{planSeleccionado.docente.email}</p>
+                  <p className="text-slate-900">
+                    {planSeleccionado.docente
+                      ? `${planSeleccionado.docente.nombre} ${planSeleccionado.docente.apellido}`
+                      : 'Sin docente asignado'}
+                  </p>
+                  {planSeleccionado.docente && (
+                    <p className="text-sm text-slate-600">{planSeleccionado.docente.email}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
@@ -402,7 +429,7 @@ export default function Planes() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Fecha de Creación</label>
-                    <p className="text-slate-900">{formatDate(planSeleccionado.createdAt || planSeleccionado.fechaCreacion)}</p>
+                    <p className="text-slate-900">{formatDate(planSeleccionado.createdAt || planSeleccionado.createdAt)}</p>
                   </div>
                 </div>
               </div>
@@ -473,11 +500,13 @@ export default function Planes() {
                     disabled={isLoading}
                   >
                     <option value="">Sin incidencia asociada</option>
-                    {incidencias.map(inc => (
-                      <option key={inc.id} value={inc.id}>
-                        {inc.descripcion} - {inc.estado}
-                      </option>
-                    ))}
+                    {Array.isArray(incidencias) && incidencias
+                      .filter(inc => inc != null && typeof inc === 'object' && inc.id && inc.descripcion && inc.estado)
+                      .map(inc => (
+                        <option key={inc.id} value={inc.id}>
+                          {inc.descripcion} - {inc.estado}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
